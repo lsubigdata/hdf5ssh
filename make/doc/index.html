@@ -1,0 +1,229 @@
+<HTML>
+<HEAD>
+<TITLE>Metamake / Make++ / MCS</TITLE>
+</HEAD>
+<BODY BGCOLOR=#FFFFFF>
+
+<H1>Metamake or Make++ or MCS<SUP><SMALL>(1)</SMALL></SUP></H1>
+
+<H3>Table of Contents</H3>
+
+<UL>
+<LI> <A HREF=#Intro>Introduction</A> - concept, overview, implementation goals
+<LI> <A HREF="application.html">Example application</A> - useful when constructing
+	a new application. It is recommended to read the concept descriptions first.
+</UL>
+
+<H3>Introduction: A makefile configuration system</H3>
+
+The purpose of this makefile configuration system is to handle
+inter-dependencies that arise when `making' an application system
+that consists of numerous components, also known as `libraries',
+but the components may also include executables. Others call them
+`packages' to have a more general name for shared libraries which
+explicitely at runtime, here we call them `targets' since they do
+indeed appear as targets in makefiles.
+<P>
+<UL>
+<LI> Why not `configure'?<P>
+     `configure' is mainly used for configuring a single library to interface with
+     a specific platform. While this works well if nothing goes wrong, applications
+     using multiple libraries often have to call configure for each library and try to keep
+     the various compilation options consistent (e.g. System C compiler, GNU C compiler,
+     various incompatible compiler switches, and much more). 
+     <P>
+     This often leads to problems, and the best solution (as can be found in
+     many applications) probably is to provide
+     a common makefile subsection, which contains all the relevant
+     makefile variable settings and is used by several or all components
+     (`targets').
+     <P>
+     This is the basic concept of this makefile
+     configuration system and should not simply be considered as a 
+     workaround of some `configure'-utility problems.
+     <P>
+     Moreover default `configure' does not provide features like VPATH-based compilation
+     (i.e. developing code for multiple platforms in the same source code directory without
+     the need of reconfiguring) and some other features mentioned later.
+	<P>
+
+<LI> Why not `imake'? <P>
+     Imake is quite X-Window based and not that useful for applications which should be
+     compiled and used completely independent of X-Windows installations. Also the
+     same limitations as before apply, in particular the non-availability of using
+     VPATH-based compilation
+	<P>
+
+<LI> IFs in makefiles <P>
+     Conditional expressions of some kind are required in
+     makefiles to keep them platform-independent.
+     This can be done in <A HREF="if.html">several ways</A>.
+     Please have a look into this section to get a better insight on how this
+     makefile configuration system works and how to use these ideas in `derived'
+     makefiles (i.e. target makefiles).
+
+<P>
+<LI> Comparison to similar makefile configuration systems:<P>
+	<UL>
+	<LI> The <A HREF="http://www.ocean.org/">Linux Kernel</A>
+		uses the environment/variable <TT>$TOPDIR</TT> to include a
+		file <TT><B>$(TOPDIR)/Rules.make</B></TT> for the makefiles in
+		the ocean subdirectories. 
+		The mechanisms provided by this makefile configuration system
+		are a similar, but more general structure of this idea,
+		such that it can be easily reused
+		and adapted to other applications. Hereby the single <TT>Rules.make</TT>
+		is split up into various includeable make sections, each containing
+		sections which are commonly used. 
+	<P>
+	<LI>
+	    <A HREF="http://www.geom.umn.edu/docs/software/viz/visualization/">Geomview</A>
+	    uses the make variable <TT>$GEOM</TT> to include global makefile definitions:
+<PRE>
+GEOM = ../../..
+include ${GEOM}/makefiles/Makedefs.global
+include Makedefs
+include ${GEOM}/makefiles/Makerules.src
+</PRE>
+	This is similar to this makefile configuration system, too. Nethertheless
+	the makefile configuration systems tries to enable the target makefiles to
+	be completely application independent.
+	</UL>
+</UL>
+
+
+<H3> Availability </H3>
+
+The makefile configuration system was orginally developed for
+the <A HREF="http://www.photon.at/~werner/light++/">Light++ Raytracing Library</A>,
+and was then extended to be 
+used in <A HREF="http://amira.zib.de/">Amira</A>, 
+<A HREF="http://www.zib.de/">ZIB</A>'s visualization framework, but it is not restricted to 
+these applications
+and may be used for completely different applications. It would be desireable to
+make as many applications/libraries as possible use this configuration system, 
+such that more applications/libraries become compatible.
+<P>
+MCS is available via <A HREF="http://www.photon.at/sw/dist/make.tgz">http://www.photon.at/sw/dist/make.tgz</A>.
+The distribution file is updated from internal CVS automatically every night; however,
+there are not much changes in the make system any more.
+
+<H3> Feature list </H3>
+
+This list gives an overview of all available features.
+
+<UL>
+<LI> Modular makefile construction
+<LI> Components can be used in multiple applications without changing the component's
+     Makefile
+<LI> VPATH rule - one source directory, multiple architectures/configurations
+     (platform-specific files in an architecture dependent directory)
+<LI> Conditional behaviour of various application components
+<LI> Interfacing with external libraries
+<LI> Available for various platforms, ranging from Win NT (Visual C++) up to
+     Cray T3E (GNU make required for all platforms)
+<LI> Creating binary/developer's/source code distributions
+</UL>
+
+<H3> Detailed description and usage tutorial </H3>
+
+The basic structure of an application using this makefile configuration system
+consists of three parts:
+<UL>
+<LI> A <TT><B>make/</B></TT> subdirectory which contains all `ocean' files 
+     of this makefile configuration system, i.e. the subdir from 
+     <A HREF="http://www.photon.at/make/">cvs -d :pserver:cvs@www.photon.at:/photoncvs co make</A>.
+	<P>    
+<LI> For each target a specific <TT><B><A HREF="GNUmakefile.html">GNUmakefile</A></B></TT> 
+     which is independent
+     of the surrounding application, but adheres to the conventions of this
+     makefile configuration system and has to be provided by the developer 
+     of the target. Providing such a makefile is made as simple as possible, 
+	it mainly has to provide a list of object files, a target name and
+	has to include the rules file (next paragraph). Nethertheless, if some
+	target <I>requires</I> some special, complicated rules, they can
+	be done here anyway.
+     <P>    
+<LI> An application-specific file <TT><B><A HREF="GNUmakefile.rules.html">GNUmakefile.rules</A></B></TT> 
+	which is included by all application target GNUmakefiles and acts as an interface
+	between the application targets and the makefile configuration system.
+	This file has to be provided by the developer of the application 
+	framework.
+</UL>
+
+The idea is that all command processing with respect to generating and
+handling targets (and more) should be cast into rules to be deposited
+in the GNUmakefile.rules file and developers of individual targets just
+have to specify that such are to be generated and their dependencies, e.g.
+specify that a library is to be created and which object files should go
+into it. That, of course, can always be done by splitting GNUmakefiles
+into `header' and `rules' sections such that a header section contains
+make variable definitions only and a rules sections contains rules only,
+making use of data passed via make variables only and providing targets
+for a header section - this way a rules section can be used for several
+header sections simply by inclusion. What the makefile configuration system
+offers in addition is a predefined set of rules that covers a range of
+typical requirements and thus does not have to be rewritten for each
+application. If required, however, the basic rules of the makefile
+configuration system may be extended or even replaced, in this case great 
+care must be exercised by the writer of the GNUmakefile.rules file who has 
+to decide how the targets should be handled in the context of the entire
+application.
+<P>
+The <A HREF="concept.html">directory structure</A> of a typical application
+is usually hidden with respect to an application target.
+The developer of an application target (a library etc.) does not need to know where
+to put compiled binaries, this is determined by specific rules contained in the
+application's <TT>GNUmakefile.rules</TT> file.
+
+<P>
+The <B><TT><A HREF="GNUmakefile.html">GNUmakefile</A></TT></B> of an application target is
+conceptually as simple as possible such that the developer of a target does not have
+to deal with complicated makefiles to keep his target compatible with the rest of
+the application's code. Basically, he only needs to specify a name for his target and
+a list of object files which are part of it.
+<P>
+The main task when adopting this makefile configuration system to a specific 
+application is to provide a good 
+<B><TT><A HREF="GNUmakefile.rules.html">GNUmakefile.rules</A></TT></B> file which 
+takes care of all its requirements. For convenience the makefile
+configuration system provides a couple of make `modules' (aka `rule files'), 
+i.e. makefile subsections, in seperate files, each covering a single possible
+requirement of an application's rule file.
+<P>
+<U>Overview of some rule files:</U>
+<UL>
+<LI> <A HREF="autoselect.html">Automatical selection of configuration variables</A>
+<LI> <A HREF="make.html">Make variable configuration based on architecture-specific variables</A>
+<LI> <A HREF="external.html">Interfacing with external libraries</A>            
+<LI> <A HREF="dist.html">Creating distribution files</A>                
+</UL>
+All rule files provide some <A HREF="rules.html">common properties</A>, e.g. 
+a help target. In each application target subdirectory an overview of all
+available make targets can be obtained by
+<PRE><B>
+	make help
+</B></PRE>
+
+
+
+<H3>Author</H3>
+Werner Benger (werner@photon.at) with help and influence of the <A HREF="http://amira.zib.de/">Amira</A>'s developers group.
+
+Sorry for the incomplete documentation, still under construction.
+
+
+<HR>
+<SMALL>1: Name is not yet decided:<BR>
+`<EM>Metamake</EM>' could be a name, since this makefile configuration system
+manages many other makefiles.<BR>
+`<EM>make++</EM>' could be a name, since this configuration system has some
+object-oriented like features, similar to C++.<BR>
+`<EM>MCS</EM>' could be an abbreviation of `makefile configuration system'.<BR>
+Any other name suggestion is welcome.
+</SMALL>
+
+
+</BODY>
+</HTML>
+

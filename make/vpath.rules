@@ -1,0 +1,90 @@
+# vpath.rules: rules for using the vpath-mechanism of make
+
+#
+# The purpose of vpath-Makefiles is to generate object files in
+# another directory than a source file directory. This mechanism 
+# is supported by the internal Make VPATH variable, which tells
+# make where to search for source files, in addition to the
+# current directory. A change of directory to the object directory
+# is encoded in the rule below which also sets VPATH to point to
+# the source file directory where make execution is invoked.
+#
+
+#
+# This file provides a (default) target `chdir' and expects an empty 
+# rule with a corresponding target `vpath_chdir' and `real' targets 
+# as dependencies in the Makefile of the source file directory 
+# (or Makefile.rules) which includes this rules file, by the rule
+# below that same Makefile is invoked from the object directory
+# to make the `real' target objects.
+#
+
+# Thus the general usage is:
+#
+# all:  chdir
+#
+# include $(MAKE_ROOT)/make/vpath.rules
+#
+# vpath_chdir: <true targets>
+#
+# Where `all' is the default target and <true targets> a list of targets which
+# should be made in the object directory, usually a list of libraries or
+# executables.
+#
+
+# 
+# The default target name `chdir' is set here as the value of the variable
+# VPATH_TARGET which may also be set to another value, in this case the
+# target `vpath_chdir' must be substituted accordingly, it is named
+# vpath_$(VPATH_TARGET) here. Using different target names is necessary
+# for including this vpath rules file multiple times.
+#
+# The variable VPATH_MAKEDIR specifys the directory where make shall be
+# executed. By default, this is set to OBJ_PATH.
+# VPATH_MAKEDIR is the dependency of the VPATH_TARGET. As a consequence
+# of the make's makefile parsing behaviour, it has to be set BEFORE including
+# vpath.rules . The including makefile has to take care of the existence/creation
+# of VPATH_MAKEDIR, i.e. this directory either has to exist or there must be a rule
+# for creating this directory somewhere else.
+# For the default VPATH_MAKEDIR=OBJ_PATH, there is such a rule in obj.rules .
+#
+
+ifndef	BINPWD
+BINPWD=/bin/pwd
+endif
+
+MAKECWD=--no-print-directory
+
+ifndef	VPATH_TARGET
+VPATH_TARGET=chdir
+endif
+
+ifndef	VPATH_MAKEDIR
+VPATH_MAKEDIR=$(OBJ_PATH)
+endif
+
+ifndef	MAKEFILE
+MAKEFILE=Makefile
+endif
+
+MSYSTARGET=$(subst c:/msys/1.0/,/,$<)
+REALPATH=$(subst c:/msys/1.0/,/,$(shell $(BINPWD)))
+
+$(VPATH_TARGET): $(VPATH_MAKEDIR) 
+	@PWD=${MSYSTARGET} $(MAKE) $(MAKECWD) \
+		 -C ${MSYSTARGET} -f $(REALPATH)/$(MAKEFILE) \
+		vpath_$@ VPATH=${REALPATH}/ TARGET=$(TARGET) \
+		MAKE_ROOT=${MAKE_ROOT} VPATH_MAKE=true \
+		LIB_ARCH_PATH=${LIB_ARCH_PATH} OBJ_PATH=${OBJ_PATH} \
+		BIN_PATH=${BIN_PATH}
+
+
+old$(VPATH_TARGET): $(VPATH_MAKEDIR) 
+	@$(MAKE) $(MAKECWD) PWD=${MSYSTARGET} -C $< -f `$(BINPWD)`/$(MAKEFILE) \
+		vpath_$@ VPATH=`$(BINPWD)`/ TARGET=$(TARGET) \
+		MAKE_ROOT=${MAKE_ROOT} VPATH_MAKE=true \
+		LIB_ARCH_PATH=${LIB_ARCH_PATH} OBJ_PATH=${OBJ_PATH} \
+		BIN_PATH=${BIN_PATH}
+
+
+

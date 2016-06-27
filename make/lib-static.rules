@@ -1,0 +1,45 @@
+ifeq	($A,so)
+all: 	${all.ctor} $(SRC) compile-static ${all.dtor}
+
+#STATICSUBDIR=/static/
+#LIB_PATH_STATIC=$(LIB_PATH)$(STATICSUBDIR)
+
+compile-static: $(LIB_PATH_STATIC) compile
+	@$(MAKE) --no-print-directory A=a compile $(MAKE_CWD) LIB_PATH=$(LIB_PATH_STATIC) MAKE_ARCH_INCLUDES=${LIB_PATH} \
+		OBJ_PATH=${OBJ_PATH} LIB_ARCH_PATH=${LIB_ARCH_PATH}
+
+#libclean-static: 
+#	-$(RM) $(LIB_PATH_STATIC)/lib$(TARGET).a
+
+libclean:: 
+	-$(RM) $(LIB_PATH_STATIC)/lib$(TARGET).a
+
+#	@$(MAKE) --no-print-directory A=a compile $(MAKE_CWD) LIB_PATH=$(LIB_PATH)/static INFO=_static
+
+
+else
+ifeq	($A,dll)
+
+compile-static: $(LIB_PATH_STATIC) 
+	@$(MAKE) --no-print-directory A=a compile $(MAKE_CWD) LIB_PATH=$(LIB_PATH_STATIC) MAKE_ARCH_INCLUDES=${LIB_PATH}
+
+all:    ${all.ctor} $(SRC) compile ${all.dtor}
+
+else
+LIB_PATH_STATIC=$(LIB_PATH)
+all:    ${all.ctor} $(SRC) compile ${all.dtor}
+
+
+endif
+endif
+
+
+$(LIB_PATH)/static:
+	-@mkdir -p $@
+
+libclean-static:
+	-$(RM) $(LIB_PATH_STATIC)/lib$(TARGET).a
+
+libclean:: 
+	-$(RM) $(LIB_PATH_STATIC)/lib$(TARGET).a
+

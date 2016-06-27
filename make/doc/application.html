@@ -1,0 +1,263 @@
+<HTML>
+<HEAD>
+<TITLE>An Example Application </TITLE>
+</HEAD>
+<BODY BGCOLOR=white>
+
+<H2>An example application </H2>
+
+This section explains how to set up an <A HREF="example/">example</A> application using the
+Makefile Configuration System. Let us assume we have an application which
+consists of a (very simple) `GUI' library and a main program. This
+simple skeleton is easy extendible to a growing application.
+<UL>
+<LI>
+     The first step is to select a directory as the root directory of
+     all application files. Let us call this the application root directory.
+<BR>
+<LI> Unpack the <A HREF="make.tar.gz">Makefile Configuration System</A> files
+     into this directory. You should get a <TT><B>make/</B></TT> subdirectory
+     there.
+<BR>
+<LI> Create a <A HREF="#rules">GNUmakefile.rules</A> file in the application
+     root directory. You may copy & paste the example below into this file.
+<BR>
+<LI> Set the environment variable APP_ROOT to point to your
+     application root directory.
+<BR>
+<LI> Create a subdirectory for you first application target, e.g. a subdirectory
+     <B><TT>gui/</B></TT>, for the GUI library program. Create a
+     <A HREF="#gui">GNUmakefile</A> there and place the <A HREF="#gui-src">source code</A> 
+     for the gui library there. Make it (do a "<B><TT>cd gui; make</TT></B>").
+<BR>
+<LI> Create a subdirectory for a `main' application target, e.g. a subdirectory
+    <B><TT>main/</B></TT>, which should contain the main program. Create a
+     <A HREF="#main">GNUmakefile</A> there and place the main source code there.
+	Make it (do a "<B><TT>cd main; make</TT></B>").
+<BR>
+<LI> Now you should have a file <B><TT>$APP_ROOT/bin/main</TT></B>.
+	Since we use shared libraries and provide architecture-independent
+	invocation, please set the environment variable $APP_ROOT to
+	the application root directory before invoking the main program.
+<BR>
+<LI> Done!
+</UL>
+
+<P>
+<HR>
+<P>
+<A NAME=rules>
+<H3>The <TT><A HREF="GNUmakefile.rules.html">GNUmakefile.rules</A></TT> file</H3>
+</A>
+
+This is an example of quite a <A HREF="example/GNUmakefile.rules">complete <TT>GNUmakefile.rules</TT></A>
+file, which already provides most of the features of the Makefile Configuration System.
+The location of the current application's root directory is determined from
+the environment variable <TT>${APP_ROOT}</TT>, if that is not set a
+warning is printed.
+<BR>
+Just copy & paste this text section into <TT><B>${APP_ROOT}/GNUmakefile.rules</B></TT>.
+Don't forget to check for spaces instead of tabs which might be introduced by the
+copy & paste action.
+
+<TABLE BORDER=2><TR><TD BGCOLOR=#C0C0C0>
+<PRE>
+#
+# <A HREF="example/GNUmakefile.rules">GNUmakefile.rules</A> for example application
+#
+
+ifndef	APP_ROOT
+app_root_error:
+	@echo 'Please set the enviroment variable $$APP_ROOT .'
+else
+MAKE_ROOT=$(APP_ROOT)
+endif
+
+#
+# For the bin-shared execution wrapper:
+# define method how to find the architecture specific binary
+# and the shared libraries for this application.
+#
+MAKE_VAR=$$APP_ROOT
+
+#
+# Automatic selection by uname, the optional environment variable
+# MAKE_CC may select a special configuration. `make arch-info' displays
+# a list of available configurations for the current system
+#
+include $(MAKE_ROOT)/make/autoselect.cfg
+
+#
+# The main configuration file where all required make variables are set
+#
+include $(MAKE_ROOT)/make/make.cfg
+
+#
+# Use predefined suffix rules (.c --> .o etc.)
+#
+include $(MAKE_ROOT)/make/suffixes.rules
+
+#
+# The default rule. It is a good idea to provide <A HREF="rules.html#cdtor">constructors</A>/
+# <A HREF="rules.html#cdtor">destructors</A> to the default target, 
+# such that target makefiles can add their own things to the default
+# rule with correct constructor/destructor dependencies (rules to be made
+# before/after the default rule.
+# By using double colons `::' here, the default rule may be extended, too,
+# e.g. by including additional rule files which also provide an `all' target.
+#
+all:: <A HREF="rules.html#cdtor">${all.ctor}</A> compilelib <A HREF="rules.html#cdtor">${all.dtor}</A>
+
+include $(MAKE_ROOT)/make/help.rules
+
+VPATH_TARGET=compilelib
+
+include $(MAKE_ROOT)/make/vpath.rules
+
+vpath_compilelib: lib
+
+include $(MAKE_ROOT)/make/lib.rules
+include $(MAKE_ROOT)/make/obj.rules
+
+#
+# Support for `external' targets and relations between targets
+#
+include $(MAKE_ROOT)/make/external.rules
+
+#
+# Support for creating distribution files
+# Targets: bindist, devdist, srcdist
+#
+include $(MAKE_ROOT)/make/dist.rules
+
+#
+# Provide an `info' target for current configurations settings
+#
+include $(MAKE_ROOT)/make/info.rules
+
+#
+# Support for makefile dependencies generated during compilation
+#
+-include $(MAKEDEPENDENCIES)
+
+depclean::
+	$(RM) $(OBJ_PATH)/$(MAKEDEPENDENCIES)
+</PRE>
+</TD></TR></TABLE>
+<P>
+<HR>
+<P>
+
+<A NAME=gui>
+<H3>The GUI library </H3>
+</A>
+
+Copy this file into <TT><B><A HREF="example/gui/gui.h">gui/gui.h</A></B></TT>:
+<TABLE BORDER=2><TR><TD BGCOLOR=#C0C0C0>
+<PRE>
+/*
+  gui.h
+
+	Example gui simulator header file for the example 
+	application of the makefile configuration system.
+	http://amira.zib.de/make/application.html
+*/
+void libhello();
+</PRE>
+</TD></TR></TABLE>
+<P>
+Copy this file into <TT><B><A HREF="example/gui/gui.cc">gui/gui.cc</A></B></TT>:
+<TABLE BORDER=2><TR><TD BGCOLOR=#C0C0C0>
+<PRE>
+/*
+  gui.cc
+	Example gui simulator source for the example 
+	application of the makefile configuration system.
+	http://amira.zib.de/make/application.html
+*/
+#include &lt;stdio.h&gt;
+#include "gui.h"
+
+void libhello()
+{
+	printf("Hello, world!\n");
+}
+</PRE>
+</TD></TR></TABLE>
+<P>
+Copy this file into <TT><B><A HREF="example/gui/GNUmakefile">gui/GNUmakefile</A></B></TT>:
+<TABLE BORDER=2><TR><TD BGCOLOR=#C0C0C0>
+<PRE>
+#
+# GNUmakefile for gui library
+#
+OBJS = gui.$O 
+TARGET = gui
+
+include $(VPATH)../GNUmakefile.rules
+
+</PRE>
+</TD></TR></TABLE>
+<P>
+After setting the <TT><B>APP_ROOT</B></TT> environment variable,
+do a <TT><B>make</B></TT> now.
+This should compile the gui object files and create a `gui' library.
+
+<P>
+<HR>
+<P>
+
+<A NAME=main>
+<H3>The main <TT><A HREF="GNUmakefile.html">GNUmakefile</A></TT> file</H3>
+</A>
+
+Copy this file into <TT><B><A HREF="example/main/main.cc">main/main.cc</A></B></TT>:
+<TABLE BORDER=2><TR><TD BGCOLOR=#C0C0C0>
+<PRE>
+/*
+	Example main program for the
+	makefile configuration system.
+	http://amira.zib.de/make/application.html
+*/
+#include &lt;gui/gui.h&gt;
+
+main()
+{
+	libhello();
+
+	return 0;
+}
+</PRE>
+</TD></TR></TABLE>
+<P>
+Copy this file into <TT><B><A HREF="example/main/GNUmakefile">main/GNUmakefile</A></B></TT>:
+<TABLE BORDER=2><TR><TD BGCOLOR=#C0C0C0>
+<PRE>
+#
+# GNUmakefile for main target
+#
+OBJS = main.$O 
+TARGET = main
+LIBS=-lgui
+
+#
+# Override default rule to create a binary, not a library.
+#
+main_target: bin
+
+include $(VPATH)../GNUmakefile.rules
+include $(MAKE_ROOT)/make/bin-shared.rules
+
+</PRE>
+</TD></TR></TABLE>
+<P>
+Now do a <TT><B>make</B></TT> 
+(with the environment variable <TT><B>APP_ROOT</B></TT> set to
+the correct value).
+This should create a binary `<TT>main</TT>' in the <TT><B>$APP_ROOT/bin/$arch/</B></TT>
+directory and a system independent invocation shell script
+<TT><B>$APP_ROOT/bin/main/</B></TT>.
+
+</BODY>
+</HTML>
+

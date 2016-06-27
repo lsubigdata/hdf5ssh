@@ -1,0 +1,68 @@
+# $Rev:$
+# $Log: dist-app.rules,v $
+# Revision 1.1.1.1  2000/02/10 19:50:53  cvs
+# Makefile Configuration System
+#
+# Revision 1.1  1999/05/04 14:34:18  bzfbenge
+# simple rules to create a distribution file for an entire application's
+# source code tree.
+#
+#
+# dist-app.rules: Rules for creating distribution files 
+# (binary, source, developers) for entire applications
+#
+
+#
+# Where to put the distribution files (.tar.gz)
+#
+ifndef	DISTDIR
+DISTDIR=${MAKE_ROOT}/dist
+endif
+
+
+APPTAREXCLUDES+=	'--exclude=obj/*'    '--exclude=lib/*'  '--exclude=bin/*' \
+			'--exclude=dist/*' 			 \
+			'--exclude=old'      '--exclude=*.old*'  \
+			'--exclude=*~'       '--exclude=*/bak/*'  '--exclude=*.bak'   \
+			'--exclude=*/CVS/R*' '--exclude=*.o'
+
+TAR_$(MAKE_UNAME)=gtar
+TAR_Linux=tar
+TAR=${TAR_$(MAKE_UNAME)}
+
+ifndef	APP
+APP=app
+endif
+
+ifndef	APP_TAR
+APP_TAR=${DISTDIR}/${APP}.tar
+endif
+
+ifndef APP_TAR_GZ
+APP_TAR_GZ=${APP_TAR}.gz
+endif
+
+tgz: ${tgz.ctor} ${APP_TAR_GZ} ${tgz.dtor}
+
+.PHONY:	${APP_TAR_GZ}
+
+${APP_TAR_GZ}: 
+	-mkdir -p ${DISTDIR} 
+	-$(RM) $@
+	@cd ${MAKE_ROOT};  \
+	$(RM) $(APP_TAR);  \
+	$(TAR) $(APPTAREXCLUDES) -cvf ${APP_TAR} *
+	gzip -c -9 ${APP_TAR} > $@
+	$(RM) $(APP_TAR)
+
+
+debug::	debug.dist-app
+
+debug.dist-app:
+	@echo 'Makefile variables used inf dist-app.rules:'
+	@echo '  DISTDIR ......... ${DISTDIR}'
+	@echo '  APP_TAR ......... ${APP_TAR}'
+	@echo '  APP_TAR_GZ ...... ${APP_TAR_GZ}'
+	@echo
+
+

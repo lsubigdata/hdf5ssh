@@ -1,0 +1,5 @@
+Steps of run the code:
+1. Extracting all the files in a folder, e.g., the folder's name is ssh.
+2. Go to ssh, then run make, this will compile some necessary library files.
+3. Go to hdf5ssh director, then run make, this will compile the SSH VFD library.
+4. Go to client director, then run make, this will compile the driver code and generate a executable file.

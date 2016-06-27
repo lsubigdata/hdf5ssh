@@ -1,0 +1,33 @@
+# info.rules: print architecture specific information with `make arch-info'.
+
+arch-info: info-example
+
+info-example: info-example.o
+	@echo Your architecture is $(arch) with flavor \'${MAKE_OSFLAVOR}\'
+	@echo Available architectures for your machine are $(MAKE_ROOT)/make/arch-$(MAKE_UNAME)-*.cfg
+ifdef BINPWD
+	@echo The working directory is determined by ${BINPWD}, which is $(shell ${BINPWD})
+endif
+	@echo
+	@echo The C compiler is: $(CC)
+	@echo The C++ compiler is: $(CXX)
+	@echo The compilation parameters for C are: $(CFLAGS)
+	@echo The compilation parameters for C++ are: $(CXXFLAGS)
+	@echo Object files will be put into $(OBJ_PATH)/
+	@echo Libraries will be installed into $(LIB_PATH)/
+	@echo Libraries in use: $(LIBS)
+	@echo Special C++ libraries in use: $(CC_LIBS) 
+	@echo Library paths used for linking: $(LIBPATHS)
+	@echo Command used for linking: $(LINK)
+	@echo Command to create a shared library: $(LINK_SHARED) 
+	@echo Specify a library with: $L
+
+info-example.o:
+
+help::
+	@ echo 'Make targets from info.rules:'
+	@ echo '  arch-info ........ shows possible make configurations and current settings.'
+	@ echo
+
+show-gcc-defs:
+	echo | gcc -dM -E -

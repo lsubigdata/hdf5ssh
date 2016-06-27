@@ -1,0 +1,32 @@
+OBJ_SUBDIRS=$(addprefix $(OBJ_PATH)/,$(SUBDIRS))
+
+subdirs:: $(OBJ_SUBDIRS)
+
+ifndef	OLD_CYGWIN
+
+$(OBJ_PATH):
+	-mkdir -p $@
+
+
+$(OBJ_SUBDIRS):
+	-mkdir -p $@
+
+else
+
+$(OBJ_PATH):
+	-mkdir -p $(subst /cygdrive/,//,$@)
+
+$(OBJ_SUBDIRS):
+	-mkdir -p $(subst /cygdrive/,//,$@)
+
+endif
+
+clean::
+ifdef	TARGET
+	-$(RM) -r $(OBJ_PATH)
+else
+	echo No target defined, not cleaning
+endif
+
+
+

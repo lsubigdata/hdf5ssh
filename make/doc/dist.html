@@ -1,0 +1,95 @@
+<HTML>
+<HEAD>
+<TITLE>Rules for creating distribution files</TITLE>
+</HEAD>
+<BODY BGCOLOR=white>
+
+<H1>Rules for creating distribution files</H1>
+
+<H2>Concept</H2>
+
+The purpose of <em>dist.rules</em> is to create distributable .tar.gz files out
+of an existing source code directory and/or a compiled source code tree. 
+The distribution may be of the kind
+<UL>
+<LI> source code distribution: The complete source directory 
+	(make target <TT>srcdist</TT>)
+<LI> developer's distribution: Compiled code (binary library) + header files 
+	(make target <TT>devdist</TT>)
+<LI> binary distribution: Compiled code only (binaries, shared libraries,...)
+	(make targe <TT>bindist</TT>)
+</UL>
+The directory or source code tree root from which a distribution file is to be
+created is expected to be given in ${DIST_ROOT} (= ${MAKE_ROOT} by default) or
+to be a subdirectory of ${DIST_ROOT}; the name of such a subdirectory or
+application component is expected to be given in the make variable ${TARGET}
+which should be set in the makefile of the target component or a in a
+GNUmake.rules file where the name of the target component currently in the
+make is likely to be known anyway.
+<P>
+Distribution files are put into the directory ${DISTDIR} (= ${MAKE_ROOT}/dist
+by default), filenames in the .tar.gz file are relative to this one. The
+distribution files are created such that they can be unpacked into a new
+${MAKE_ROOT} directory, thus a complete distribution can be used in the same
+way as the original version.
+<P>
+If the current source tree or the directory containing the compiled code is not
+a subdirectory of ${DISTDIR} the dist rules will store absolute path names into
+the distribution files.
+
+<H2>Usage</H2>
+
+Please remember that `make help.dist' gives an overview of the make rules
+available by including this rule file, and `make makevars.dist' gives a description
+of the make variables that affect the functionality of this rule file.
+To examine the contents of these make variables, type `make debug.dist'.
+<P>
+By default, the <tt>srcdist:</tt> rule takes the whole source tree and packs
+it into a distribution file. The source files may reside in a subdirectory of
+${DIST_ROOT_SRC}, which by default is identical to ${DIST_ROOT}.
+<P>
+<P>
+In the following the shorthand xxxdist will be used for {src|dev|bin}dist,
+respectively.
+<P>
+ The name of the distribution file (including directory prefix) may be specified 
+in the variables ${XXX_TAR_GZ}, where ${XXX_TAR} is predefined to be
+<PRE>
+SRC_TAR=${DISTDIR}/${TARGET}-src.tar
+DEV_TAR=${DISTDIR}/${TARGET}-${arch}-dev.tar
+BIN_TAR=${DISTDIR}/${TARGET}-${arch}.tar
+</PRE>
+The name of the distribution file must be defined prior to inclusion of
+dist.rules.
+<P>
+Each xxxdist rules has a `constructor' dependency ${xxxdist.ctor} and a
+`destructor' dependency ${xxxdist.dtor}, these variables may be set to hold
+the name of make targets that are made just before resp. after the 
+distribution file is generated. This is useful for creating additional
+files that are to be put into the distribution but will not be used otherwise.
+For example, to put an additional file `dist-only.txt' into a source 
+distribution file, GNUmakefile should contain lines like the following:
+<PRE>
+srcdist.ctor = create-txt
+srcdist.dtor = delete-txt
+
+include $(MAKE_ROOT)/make/dist.rules
+
+create-txt:
+	echo This file is in the distribution only > dist-only.txt
+
+delete-txt:
+	-rm dist-only.txt
+</PRE>
+Similarly, constructor/destructor rules may be used to delete/recreate
+files during the process of creating a distribution file.
+<P>
+The special rule <TT>xxxdist.etc::</TT> is executed after creation of an uncompressed
+.tar file, prior to compression. By adding commands to the multiple xxxdist.etc::
+rule, arbitrary files can be added to the tar file currently under construction.
+E.g. global config files could be included in a distribution this way
+
+</BODY>
+</HTML>
+
+

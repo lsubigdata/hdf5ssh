@@ -1,0 +1,140 @@
+.SUFFIXES: .y .ypp .l .lpp .c .cc .C .cpp .cxx .F .$O $(SUFFIXES) .h .class .java .frag .vert .fcpp .vcpp .geom .gcpp .ocl .oclcpp
+
+ifndef	SRC
+SRC= $(subst ${VPATH},,$(wildcard ${VPATH}*.cpp))
+SRC_CC=$(subst ${VPATH},,$(wildcard ${VPATH}*.cc))
+endif
+
+ifndef	SRC_C
+SRC_C=$(subst ${VPATH},,$(wildcard ${VPATH}*.c))
+endif
+
+ifndef	OBJS_C
+OBJS_C  =$(subst .c,.$O,${SRC_C})
+endif
+
+ifndef	OBJS_CPP
+OBJS_CPP=$(subst .cpp,.$O,${SRC}) \
+	 $(subst .cc,.$O,${SRC_CC})
+endif
+
+ifndef	OBJS
+OBJS = $(OBJS_C) $(OBJS_CPP)
+endif
+
+include ${MAKE_ROOT}/make/svn.rules
+
+
+
+.c.$O:
+	$(CC) $(CFLAGS) -c $(SOURCEFILE_PARAMETER) $(OUTPUT_OBJECT)$@
+	$(MAKEDEP)
+
+MAKE_VERBOSE_Optimize=@
+MAKE_VERBOSE=${MAKE_VERBOSE_${MAKE_CFG}}
+
+# Rules for extension cpp
+
+ifdef	FUNCTRACE
+CPPFILE=functrace-$(subst $O,cpp,$@) -I${VPATH}
+else
+CPPFILE=$(SOURCEFILE_PARAMETER)
+endif
+
+.cpp.$O:
+	@echo Compiling ${*F}.cpp... $(${*F}_NON_CXXFLAGS_${arch})
+ifdef	FUNCTRACE
+	$(FUNCTRACE) $(SOURCEFILE_PARAMETER) > $(CPPFILE)
+	$(MAKE_VERBOSE)$(CXX) ${filter-out $(${*F}_NON_CXXFLAGS_${arch}), $(CXXFLAGS)} $(${*F}_CXXFLAGS_${arch}) -c $(CPPFILE) $(OUTPUT_OBJECT)$@
+else
+	$(MAKE_VERBOSE)$(CXX) ${${*F}_DEFINES} ${filter-out $(${*F}_NON_CXXFLAGS_${arch}), $(CXXFLAGS)} $(${*F}_CXXFLAGS_${arch}) -c $(SOURCEFILE_PARAMETER) $(OUTPUT_OBJECT)$@ $(SVN_INFO)
+endif
+	@$(MAKEDEP_CPP)
+
+.cpp.s:
+	@echo Producing assembler code for ${*F}.cpp...
+	$(CXX) -S -dA ${filter-out $(${*F}_NON_CXXFLAGS_${arch}), $(CXXFLAGS)} $(${*F}_CXXFLAGS_${arch}) -c $(SOURCEFILE_PARAMETER) $(OUTPUT_OBJECT)$@
+
+
+# Rules for extension cc
+
+.cc.$O:
+	$(CXX)  ${filter-out $(${*F}_NON_CXXFLAGS_${arch}), $(CXXFLAGS)} $(${*F}_CXXFLAGS_${arch}) -c $(SOURCEFILE_PARAMETER) $(OUTPUT_OBJECT)$@
+	$(MAKEDEP_CPP)
+
+# Rules for extension C
+
+#
+# old unix-specific rules using capital C for C++ .
+# This mechanism is not portabl to Windows and thus not supported here.
+#
+#.C.$O:
+#	$(CXX)  ${filter-out $(${*F}_NON_CXXFLAGS_${arch}), $(CXXFLAGS)} $(${*F}_CXXFLAGS_${arch}) -c $(SOURCEFILE_PARAMETER) $(OUTPUT_OBJECT)$@
+#	$(MAKEDEP_CPP)
+
+.cxx.$O:
+	$(CXX) ${filter-out $(${*F}_NON_CXXFLAGS_${arch}), $(CXXFLAGS)} $(${*F}_CXXFLAGS_${arch}) -c $(SOURCEFILE_PARAMETER) $(OUTPUT_OBJECT)$@
+	$(MAKEDEP_CPP)
+
+.F.o:
+	$(F77) -c $(F77FLAGS) $< $(INCLUDES). -o $@
+
+
+.y.cpp:
+	$(YACC) -d -o $@ $<
+
+
+.ypp.cpp:
+	$(YACC) -d -o $@ $<
+
+ifndef	FLEX
+flex=flex
+endif
+
+.lpp.cpp:
+	$(FLEX) -B -8 -+ -o$@ $<
+
+#
+# Rules for compling JAVA
+#
+.class.h:
+	gcjh -o $@ $(basename $<) 
+
+.java.class:
+	gcj -C $<
+
+.class.o:
+	gcj -I$(VPATH) -c $<
+
+
+TXT2STRING=${BIN_PATH}/txt2string.exe
+
+.vert.vcpp:
+	@${MAKE} txt2string -f ${VPATH}Makefile
+	echo '#pragma GCC dependency "'$(notdir $<)'"' > $@
+	echo '#line 1 "'$(notdir $<)'"' >> $@
+	${TXT2STRING} < $< >> $@
+
+.frag.fcpp:
+	@${MAKE} txt2string -f ${VPATH}Makefile
+	echo '#pragma GCC dependency "'$(notdir $<)'"' > $@
+	echo '#line 1 "'$(notdir $<)'"' >> $@
+	${TXT2STRING} < $< >> $@
+
+
+.geom.gcpp:
+	@${MAKE} txt2string -f ${VPATH}Makefile
+	echo '#pragma GCC dependency "'$(notdir $<)'"' > $@
+	echo '#line 1 "'$(notdir $<)'"' >> $@
+	${TXT2STRING} < $< >> $@
+
+.glsl.cpp:
+	@${MAKE} txt2string -f ${VPATH}Makefile
+	echo '#pragma GCC dependency "'$(notdir $<)'"' > $@
+	echo '#line 1 "'$(notdir $<)'"' >> $@
+	${TXT2STRING} < $< >> $@
+
+
+.ocl.oclcpp:
+	@${MAKE} txt2string -f ${VPATH}Makefile
+	${TXT2STRING} < $< > $@

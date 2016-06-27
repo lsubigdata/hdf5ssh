@@ -1,0 +1,133 @@
+#!/bin/sh
+
+base=`dirname $0`
+
+if [ -d "/c/Program Files (x86)" ]
+then
+        MAKE_UNAME=WIN64
+        MAKE_ALT_UNAME=msys
+else
+	if [ -x /bin/uname ]
+	then
+       		uname=/bin/uname
+	else
+ 		if [ -x /usr/bin/uname ]
+ 		then
+       			 uname=/usr/bin/uname
+ 		else
+       			 uname=uname
+ 	fi
+	fi
+        MAKE_ALT_UNAME=${MAKE_UNAME}
+	MAKE_UNAME=$($uname)
+#  MAKE_UNAME=${MAKE_UNAME:-`uname`}
+fi
+
+MAKE_ALT_UNAME=${MAKE_ALT_UNAME:-${MAKE_UNAME}}
+
+case $MAKE_UNAME in
+        IRIX64)
+                if [ -z "$USE_IRIX64" ]
+                then
+                        MAKE_UNAME=IRIX
+                fi;;
+        UNICOS/mk)      MAKE_UNAME=T3E;;
+        sn6311)         MAKE_UNAME=T3E;;
+        HI-UX/MPP)      MAKE_UNAME=HIUX;;
+        CYGWIN*)        MAKE_UNAME=cygwin32;;
+        Linux)          MAKE_KERNEL_RELEASE=$($uname -r)
+                        MAKE_OSFLAVOR=.${MAKE_KERNEL_RELEASE##*.}
+                        MAKE_UNAME=Linux$($uname -m)
+                        ;;
+        MINGW32_*)      MAKE_UNAME=msys;;
+        WIN64*)         MAKE_UNAME=x86_64-w64-mingw32;;
+esac
+
+
+make_arch=arch-${MAKE_UNAME}-${MAKE_CFG:-Optimize}
+make_alt_arch=arch-${MAKE_ALT_UNAME}-${MAKE_CFG:-Optimize}
+
+arch=${arch:-$make_arch}
+alt_arch=${arch:-$make_alt_arch}
+
+ARCH_DETECT=#ARCH_DETECT#
+if [ ! -z "${ARCH_DETECT}" ]
+then
+    if [ -x ${ARCH_DETECT} ]
+    then
+	arch=`${ARCH_DETECT}`
+    fi
+fi
+
+basename=`basename $0`
+extension=''
+
+if [ -d $base/${arch}${MAKE_OSFLAVOR} ]
+then
+	arch=${arch}${MAKE_OSFLAVOR}
+fi
+
+
+if [ ! -x $base/#EXEC_BINARY# ]
+then
+    if [ -x $base/#EXEC_BINARY#.exe ]
+    then
+      extension=.exe
+    else
+     if [ "$MAKE_CFG" != "" ]
+     then
+	echo "Warning: No $MAKE_CFG version for $basename."
+     fi
+    case $arch in 
+	*Debug)
+		MAKE_CFG=Optimize ;;
+
+	*Debug${MAKE_OSFLAVOR})
+		MAKE_CFG=Optimize${MAKE_OSFLAVOR} ;;
+
+	*Optimize)
+	    	MAKE_CFG=Debug ;;
+
+	*Optimize${MAKE_OSFLAVOR})
+	    	MAKE_CFG=Debug${MAKE_OSFLAVOR} ;;
+
+	*)	
+		echo "Error: Can't find an executable $basename version for $arch."
+		exit 1;
+    esac
+    export MAKE_CFG
+    arch=arch-${MAKE_UNAME}-${MAKE_CFG}
+    #arch=`${ARCH_DETECT}`
+   fi
+fi
+
+RUNTIME_LIBPATH=#RUNTIME_LIBPATH#
+MYLIBDIR=`(IFS=:; for f in ${RUNTIME_LIBPATH}; do echo $f; done )`
+
+PATH=${MYLIBDIR}:$PATH:/usr/X11R6/bin
+LD_LIBRARY_PATH=${MYLIBDIR}:$LD_LIBRARY_PATH
+LD_LIBRARYN32_PATH=${MYLIBDIR}:$LD_LIBRARYN32_PATH
+export LD_LIBRARY_PATH LD_LIBRARYN32_PATH PATH
+
+if [ ! X"$1" != X'--gdb' ]
+then
+	MAKE_EXEC='gdb --eval-command=run --args ' 
+	shift
+fi
+
+if [ ! X"$1" != X'--valgrind' ]
+then
+	MAKE_EXEC='valgrind ' 
+	shift
+fi
+
+if [ ! X"$1" != X'--valgrindleak' ]
+then
+	MAKE_EXEC='valgrind --leak-check=yes' 
+	shift
+fi
+
+
+${MAKE_EXEC:-exec} $base/#EXEC_BINARY#${extension} $*
+
+

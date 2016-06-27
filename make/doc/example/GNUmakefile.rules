@@ -1,0 +1,15 @@
+ifndef	MAKE_ROOT
+ifdef	MAKE_LEVEL
+MAKE_ROOT:=$(VPATH)${MAKE_LEVEL}
+else
+MAKE_ROOT:=..
+endif
+endif
+
+MAKE_ROOT:=$(shell cd ${MAKE_ROOT}; /bin/pwd)
+
+#
+# Predefined rule file
+#
+include $(MAKE_ROOT)/make/all.rules
+

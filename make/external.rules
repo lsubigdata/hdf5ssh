@@ -1,0 +1,152 @@
+#external.rules: Support for external (self-configurable) components
+
+#
+# This mechanism can be easily used to implement a `visibility'
+# functionality to each make component. Use the settings
+#
+TARGET_FLAGS=-DWITH_$(TARGET)
+TARGET_LIB=-l$(TARGET)
+#
+# in the local Makefiles, such that any C/C++ source can test the
+# availability of another library/package with an #ifdef WITH_...
+#
+TARGETCFG = $(LIB_PATH)/$(TARGET).cfg
+GLOBALCFG = $(LIB_PATH)/$(TARGET)-global.cfg
+
+TARGETHDR = $(LIB_PATH)/$(TARGET).hdr
+
+ifndef	 MAKEFILE
+MAKEFILE=Makefile
+endif
+
+remove-config: remove-hdr
+	-$(RM) $(LIB_PATH)/$(TARGET).cfg
+
+remove-hdr:
+	-$(RM) $(TARGETHDR)
+	-@for f in $(LIB_PATH)/*.hdr ; do cat $$f; done > $(LIB_PATH)/libs.h
+
+libclean:: remove-config
+
+#
+# This target should rarely be used, since it modifies global
+# variables which are used for any other make target.
+# This target can be used to FORCE visibility to all other
+# makefile targets.
+#
+global-config: $(GLOBALCFG)
+	echo '#define WITH_$(TARGET) $(TARGETDEFINE)' > $(TARGETHDR)
+	for f in $(LIB_ARCH_PATH)/*.hdr ; do cat $$f; done > $(LIB_PATH)/libs.h
+
+$(GLOBALCFG): $(VPATH)$(MAKEFILE) 
+	@echo 'INCLUDES+=$(TARGET_INCLUDES)' >> $(GLOBALCFG)
+	@echo 'SYSCFLAGS+=$(TARGET_CFLAGS)' >> $(GLOBALCFG)
+	@echo 'LDFLAGS+=$(TARGET_LDFLAGS)'  >> $(GLOBALCFG)
+
+#
+# This target sets some target-specific names, which can be used
+# by other target makefiles to test, if this package is available.
+# This target can be used to make a package visible to another
+# package, which knows of the possible existence of this one.
+#
+visible: $(TARGETHDR) $(TARGETCFG)
+
+$(TARGETCFG): $(VPATH)$(MAKEFILE)
+	@echo '$(TARGET)_FLAGS=$(TARGET_FLAGS)'  > $(TARGETCFG)
+	@echo '$(TARGET)_LIB=$(TARGET_LIB)'     >> $(TARGETCFG)
+	@echo '$(EXTRA_TARGET_0)'               >> $(TARGETCFG)
+	@echo '$(EXTRA_TARGET_1)'               >> $(TARGETCFG)
+	@echo '$(EXTRA_TARGET_2)'               >> $(TARGETCFG)
+	@echo '$(EXTRA_TARGET_3)'               >> $(TARGETCFG)
+	@echo '$(EXTRA_TARGET_4)'               >> $(TARGETCFG)
+
+ifndef TARGETDEFINE
+TARGETDEFINE=1
+endif
+
+SYSDEFINES+=-DHAVE_LIBS_H
+
+$(TARGETHDR): $(VPATH)$(MAKEFILE) 
+	-mkdir -p $(LIB_PATH)
+	echo '#define WITH_$(TARGET) $(TARGETDEFINE)' > $(TARGETHDR)
+
+showconfig: ${TARGETCFG}
+	@cat ${TARGETCFG}
+
+show-config: ${TARGETCFG}
+	@cat ${TARGETCFG}
+
+	
+hdr:	$(LIB_PATH)/libs.h
+
+shdr:	$(LIB_PATH_STATIC)/libs.h
+
+ifneq ($(LIB_PATH_STATIC),$(LIB_PATH))
+$(LIB_PATH_STATIC)/libs.h: $(LIB_PATH_STATIC) $(LIB_PATH)/libs.h
+	ln -sf $(LIB_PATH)/libs.h $(LIB_PATH_STATIC)/libs.h
+endif
+
+
+#$(LIB_ARCH_PATH)/*.hdr: $(LIB_ARCH_PATH)
+#	touch $(LIB_ARCH_PATH)/make-default.hdr
+
+
+$(LIB_ARCH_PATH)/libs.h: $(LIB_ARCH_PATH) $(LIB_ARCH_PATH)/*.hdr
+	for f in $(LIB_ARCH_PATH)/*.hdr ; do cat $$f; done > $(LIB_PATH)/libs.h
+
+libclean::
+	-mkdir -p $(LIB_ARCH_PATH)
+	echo '#undef WITH_$(TARGET)' > $(TARGETHDR)
+	for f in $(LIB_ARCH_PATH)/*.hdr ; do cat $$f; done > $(LIB_PATH)/libs.h
+
+
+help:: external.help
+
+help.external: external.help
+
+external.help:
+	@ echo 'Make targets from external.rules:'
+	@ echo '  global-config .... Add target specific flags to the global configuration'
+	@ echo '  visible .......... Add target flags (-DWITH_$(TARGET) ...) to the configuration'
+	@ echo '  remove-config .... Remove target configuration file'
+	@ echo '    Note: Config is stored in $$LIB_PATH/$$TARGET.cfg'
+	@ echo '      which is: $(LIB_PATH)/$(TARGET).cfg'
+	@ echo '  showconfig ...... Display contents of Config file'
+	@ echo
+
+makevars:: makevars.external
+
+external.makevars: makevars.external
+
+makevars.external:
+	@ echo 'Make variables used in external.rules:'
+	@ echo '  TARGET ........... the name of the configuration, to be used for makefile inclusion'
+	@ echo '  LIB_PATH ......... where to create the configuration file'
+	@ echo '  VPATH ............ from where this make is invoked'
+	@ echo '  TARGETCFG ........ full path name of the make include file for this target'
+	@ echo ' For the "global-config" target:'
+	@ echo '  TARGET_INCLUDES .. include paths to be added to the global INCLUDES variable'
+	@ echo '  TARGET_CFLAGS .... C flags to be added to the global CFLAGS variable'
+	@ echo '  TARGET_LDFLAGS ... Linker flags to be added to the global LDFLAGS variable'
+	@ echo ' For the "visible" target:'
+	@ echo '  TARGET_FLAGS .... The content of the global $(TARGET)_FLAGS variable'
+	@ echo '  TARGET_LIB ...... The content of the global $(TARGET)_LIB variable'
+	@ echo ''
+
+debug:: debug.external
+
+external.debug: debug.external
+
+debug.external:
+	@ echo 'Make variables used in external.rules:'
+	@ echo '  TARGET ........... $(TARGET)' 
+	@ echo '  LIB_PATH ......... $(LIB_PATH)'
+	@ echo '  VPATH ............ $(VPATH)'
+	@ echo '  TARGETCFG ........ $(TARGETCFG)'
+	@ echo '  TARGET_CFLAGS .... $(TARGET_CFLAGS)'
+	@ echo '  TARGET_LDFLAGS ... $(TARGET_LDFLAGS)'
+	@ echo '  TARGET_INCLUDES... $(TARGET_INCLUDES)'
+	@ echo '  TARGET_FLAGS ..... $(TARGET_FLAGS)'
+	@ echo '  TARGET_LIB ....... $(TARGET_LIB)'
+	@ echo ''
+

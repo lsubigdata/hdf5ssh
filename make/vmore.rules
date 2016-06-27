@@ -1,0 +1,28 @@
+# vmore.rules: Some vpath rules which are often used.
+
+#--------------
+#
+# Additional VPATH rule for single files (make vpath FILE=xxx.o)
+#
+VPATH_TARGET=chdir_$(FILE)
+vpath: $(VPATH_TARGET)
+
+include $(MAKE_ROOT)/make/vpath.rules
+
+vpath_chdir_$(FILE): $(FILE)
+
+#----------
+
+#
+# Additional VPATH rule for removing single files (make vclean FILE=xxx.o)
+#
+VPATH_TARGET=clean_$(FILE)
+vclean: $(VPATH_TARGET)
+
+include $(MAKE_ROOT)/make/vpath.rules
+
+vpath_clean_$(FILE): 
+	$(RM) $(FILE)
+
+
+#----------

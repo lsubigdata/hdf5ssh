@@ -1,0 +1,212 @@
+<HTML>
+<HEAD>
+<TITLE>if's in Makefiles </TITLE>
+</HEAD>
+<BODY BGCOLOR=white>
+
+<H1>if's in Makefiles</H1>
+
+<H3>The problem</H3>
+When writing compile commands for multiple platforms,
+if-statements are really essential.
+E.g. if you have to write a program for the two platforms
+IRIX and HP-UX (the names are chosen freely, could be anything
+else), you may want to use a library called `irix' under IRIX and
+a library called `hpux' under HPUX.
+<P>
+<B>Example:</B><BR>
+<TABLE><TR><TD BGCOLOR=#C0C0C0>
+<B>compile command for `progname.c' under IRIX:</B>
+<PRE>
+IRIX: $ cc progname.c -lirix
+</PRE>
+<B>compile command for `progname.c' under IRIX:</B>
+<PRE>
+HP-UX: $ cc progname.c -lhpux
+</PRE>
+</TD></TR></TABLE>
+<P>
+
+This problem often occurs when writing multi-platform makefiles.
+Three kinds of possible solutions are presented here.
+Let us assume that the current machine type is stored in
+a make variable called <TT>MAKE_UNAME</TT>, i.e.
+under IRIX:
+<PRE>
+MAKE_UNAME = IRIX
+</PRE>
+and under HP-UX:
+<PRE>
+MAKE_UNAME = HP-UX
+</PRE>
+We would then like to set a make variable <TT>LIBS</TT> to contain
+the text <TT>-lirix</TT> or <TT>-lhpux</TT>, depending on <TT>MAKE_UNAME</TT>,
+such that the final command line in the make file looks like this:
+<TABLE><TR><TD BGCOLOR=#C0C0C0>
+<PRE>
+
+cc progname.c $(LIBS)
+</PRE>
+</TD></TR></TABLE>
+There are three ways to accomplish this goal:
+
+<H3>If's using GNU make</H3>
+GNU make intrinsically supports if-statements.
+It would be straightforward to directly use this feature
+(if using GNU make instead of standard make is no problem):
+
+<TABLE><TR><TD BGCOLOR=#C0C0C0>
+<PRE>
+
+ifeq ($(MAKE_UNAME), IRIX)
+LIBS=-lirix
+endif
+
+ifeq ($(MAKE_UNAME), HP-UX)
+LIBS=-lhpux
+endif
+</PRE>
+</TD></TR></TABLE>
+
+However, there are some other methods, which are shorter in writing
+and easier to read, once you are familiar with this kind
+of `if-statement'.
+
+<H3>Recursive evaluation</H3>
+Most standard makefiles (unfortunately not all of them) support
+recursive evaluation of make variables. This means that a make
+variable may contain the name of another make variable.
+Using this mechanism, the `if-statement' could be written this way:
+<TABLE><TR><TD BGCOLOR=#C0C0C0>
+<PRE>
+
+LIBS_IRIX  = -lirix
+LIBS_HP-UX = -lhpux
+
+LIBS=$(LIBS_${MAKE_UNAME})
+</PRE>
+</TD></TR></TABLE>
+When variable <TT><B>LIBS</B></TT> is used, it is searched as the value
+of the variable <TT><B>LIBS_${MAKE_UNAME}</B></TT>, which is, depending
+on <TT><B>MAKE_UNAME</B></TT>, either <TT><B>LIBS_IRIX</B></TT> or <TT><B>LIBS_HP-UX</B></TT>.
+<P>
+The advantage of this mechanism is that only a single line is required for each
+platform-configuration, whereas three lines are necessary for each platform
+when using direct if-statements. So this is more compact and remains as
+readable as it is when adding more platforms.
+<P>
+Using () or {} for variable evaluation is mainly a question of taste, both ways
+are equivalent for the make program. However some make programs have problems with
+recursive evaluation when identical brackets are used, since they do not 
+parse brackets recursively, but look for the first closing bracket after the first opening bracket.
+Clearly this way recursive evaluation does not work, but using different
+kinds of brackets circumvents this problem.
+
+<H4>Advanced</H4>
+A more advanced feature (but possibly harder to understand) feature of
+recursive evaluation is that it takes place at the point where a recursively
+defined variable is <b>evaluated</b>, not at the place of definition or
+assignment. This means that in the above example the variable
+<TT><B>MAKE_UNAME</B></TT> needs not to be defined when <TT><B>LIBS</B></TT> 
+is defined to be a recursive variable and <TT><B>MAKE_UNAME</B></TT>
+may be assigned some value <B>after</B>
+definition of <TT><B>LIBS</B></TT> (if it is defined more than once, the last
+occurance in the makefile counts:
+<TABLE><TR><TD BGCOLOR=#C0C0C0>
+<PRE>
+
+LIBS=$(LIBS_${MAKE_UNAME})
+
+MAKE_UNAME = HP-UX
+</PRE>
+</TD></TR></TABLE>
+This will also work and assignes the value of <TT><B>LIBS_HP-UX</B></TT>
+to  <TT><B>LIBS</B></TT>.
+<P>
+And this will, of course, also works if the assignment to the LIBS-variable
+is done in some included makefile and an assignment to MAKE_UNAME appears
+after inclusion of this makefile:
+
+<TABLE><TR><TD BGCOLOR=#C0C0C0>
+<B>File: libs-definition.cfg</B>
+<PRE>
+LIBS_IRIX  = -lirix
+LIBS_HP-UX = -lhpux
+
+LIBS=$(LIBS_${MAKE_UNAME})
+</PRE>
+<B>File: Makefile</B>
+<PRE>
+include libs-definition.cfg
+
+MAKE_UNAME = HP-UX
+</PRE>
+</TD></TR></TABLE>
+This way, a user can chose a value from multiple definitions in a file
+<TT>libs-definition.cfg</TT> (which defines a couple of <TT>LIBS</TT>-Variables).
+The advantage against setting <TT>MAKE_UNAME</TT> <EM>before</EM> the configuration
+file is included is that the configuration file itself may set <TT>MAKE_UNAME</TT>
+to some default value. So the user is not expected to set <TT>MAKE_UNAME</TT> by himself,
+but he may, if he wants to do so. This clearly does not work if he tries to
+set <TT>MAKE_UNAME</TT> before the definition file is included.
+<P>
+The last assignment of <TT>MAKE_UNAME</TT> counts.
+
+<H3>File inclusion</H3>
+
+When more than one variable is to be set depending on another variable,
+it may be handy to set all these variables at once, using the name of
+that variable directly without `intermediate variables' for recursive
+evaluation, This can be achieved using GNU-make's intrinsic if-statements
+or by using variable-specific file inclusion:
+<P>
+<TABLE><TR><TD BGCOLOR=#C0C0C0>
+
+<B>File: libs-IRIX.cfg</B>
+<PRE>
+LIBS = -lirix
+...
+</PRE>
+<B>File: libs-HP-UX.cfg</B>
+<PRE>
+LIBS = -lhp-ux
+...
+</PRE>
+<B>File: Makefile</B>
+<PRE>
+include libs-$(MAKE_UNAME).cfg
+</PRE>
+</TD></TR></TABLE>
+(Variable LIBS is set correctly now.)
+<P>
+An advantage is that all variables specific to one platform are kept at 
+one place. A disadvantage is that you need multiple files. However, for
+applications which use more than one makefile (which is the case for
+any larger application consisting of multiple libraries and programs),
+this is an advantage because all of these single makefiles may
+include the same configuration files and get the same definitions,
+which are therefore insured to be identical and compatible.
+
+<H4>Advanced</H4>
+Another advantage is that default values for variables can easily 
+be defined. E.g. if the definitions for <TT>IRIX</TT> are also suitable
+for <TT>HP-UX</TT>, but some changes are required for <TT>HP-UX</TT> as 
+well, the <TT>IRIX</TT> file can be included unconditionally
+and the <TT>HP-UX</TT> file depending on the platform:
+<TABLE><TR><TD BGCOLOR=#C0C0C0>
+<PRE>
+
+include libs-IRIX.cfg
+include libs-$(MAKE_UNAME).cfg
+</PRE>
+</TD></TR></TABLE>
+Under HP-UX, the definitions of <TT>libs-IRIX.cfg</TT> are read
+and possibly overridden by the definitions in <TT>libs-HP-UX.cfg</TT>.
+Under IRIX, the definitions of <TT>libs-IRIX.cfg</TT> are read twice,
+which is quite harmless.
+<P>
+The <A HREF="">makefile configuration system</A> is based on these
+mechanisms.
+</BODY>
+</HTML>
+

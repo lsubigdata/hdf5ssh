@@ -1,0 +1,390 @@
+<HTML>
+<HEAD>
+<TITLE>The RULES file</TITLE>
+</HEAD>
+<BODY BGCOLOR=white>
+
+<H1>The Art of writing a GNUmakefile.rules file</H1>
+
+<UL>
+<LI> <A HREF="#make_root"> Specifying the MAKE_ROOT variable</A>:<BR>
+	The <TT>GNUmakefile.rules</TT> file must set the MAKE_ROOT variable such
+	that the make components provided by the makefile configuration systems work
+	correctly. There are various ways to do so, which on to use is mainly a matter
+	of taste.<P>
+<LI> <A HREF="#novpath"> Rules file for compiling a library in the current directory</A>:<BR>
+	If you just want to compile all files in the current directory, like a
+	usual make does. This might be most familiar to most make users, but you will
+	get a lot of temporary directories and you can't do program development for
+	more than one architecture (the word `architecture' includes different
+	compiler options/compilers on the same hardware architecture, too)
+	without doing a make clean and remaking the whole thing. If you don't need
+	this, these simple rules might be ok for you. Otherwise you may use the
+	feautures of the VPATH mechanism.<P>
+<LI> <A HREF="#vpath"> Rules file using the VPATH mechanism </A>:<BR>
+	All temporary and/or architecture specific files are put into
+	a separate directory apart from the source code directory. Your
+	source code directory will always be kept clean and you can develop
+	for multiple architectures in parallel. A rules file using the
+	VPATH mechanism is somewhat more complex, but usually it's worth
+	the effort.
+<P>
+<LI> <A HREF="#external> Support for `external' targets and relations between targets </A><P>
+<LI> <A HREF="#dist">Support for creating distribution files</A><P>
+<LI> <A HREF="#info">Support for an `info' target</A><P>
+<LI> <A HREF="#depend">Support for makefile dependencies generated during compilation</A><P>
+<LI> <A HREF="#subdirts">Support for executing make in subdirectories</A><P>
+<LI> <A HREF="application.html">A sample application</A>
+</UL>
+
+<A NAME=make_root>
+<H3>Various ways of specifying the required MAKE_ROOT variable</H3>
+</A>
+
+All makefile components require the variable <B><TT>MAKE_ROOT</TT></B> to be
+set to the top directory of your application or a parent directory of the
+make configuration system directory<TT>make</TT> by which the applications
+to be handled are accessible. This can be done in several ways:
+
+<UL>
+<LI>
+Setting the environment variable <B><TT>MAKE_ROOT</B></TT> in the shell.
+<P>
+E.g. in ksh/bash:
+<TABLE><TR><TD BGCOLOR=#C0C0C0>
+<PRE>
+
+home: $ export MAKE_ROOT=/usr/local/application/
+</PRE>
+</TD></TR></TABLE>
+
+in csh/tcsh:
+<TABLE><TR><TD BGCOLOR=#C0C0C0>
+<PRE>
+
+home: % setenv MAKE_ROOT /usr/local/application/
+</PRE>
+</TD></TR></TABLE>
+
+Setting the MAKE_ROOT environment variable can be done in the
+local user's shell profile (.bashrc, .cshrc).
+<P>
+
+<LI>
+In case that using an environment variable is not desired,
+e.g. because one has to deal with more than one application
+(and correspondingly with multiple toplevel GNUmakefile.rules files),
+and changing the MAKE_ROOT variable when changing between these
+applications is too unconvenient (or considered to be too error-prone),
+one can assign an application specific environment variable to
+the MAKE_ROOT make variable within the GNUmakefile.rules file of that
+application where this assignment must precede any other lines and
+usually is the first line.<P>
+
+<EM>Referring to another variable:</EM>
+<TABLE><TR><TD BGCOLOR=#C0C0C0>
+<PRE>
+
+MAKE_ROOT=$(APPLICATION_ROOTDIR)
+</PRE>
+</TD></TR></TABLE>
+
+The environment variable <B><TT>APPLICATION_ROOTDIR</TT></B> must still
+be set in the shell, as in the former case. However, several such
+variables may now coexist.
+<P>
+
+<LI>
+In case even setting an application-specific environment variable is too
+inconvenient, the <TT>MAKE_ROOT</TT> variable may be a path which is
+relative to a target's directory.
+This is the worst solution, because all targets of this application
+must then reside at the same subdirectory level, relative to the 
+application top level directory.
+However, an enviroment variable $(APPLICATION_ROOTDIR) needs not be set,
+and this is useful for direct compilation of some source code that has
+been extracted from a distribution file.
+<P>
+<EM>Using a target-relative path (example):</EM>
+
+<TABLE><TR><TD BGCOLOR=#C0C0C0>
+<PRE>
+
+MAKE_ROOT=$(VPATH)..
+</PRE>
+</TD></TR></TABLE>
+
+Setting MAKE_ROOT as in this example requires all targets to reside in a
+direct child directory of the application root directory.
+For generality, please use the VPATH variable when
+specifying directories, which are relative to the target directory.
+Normally, $(VPATH) is empty, but in special cases (i.e. when the
+<A HREF=#vpath>VPATH</A> mechanism is used) it might contain the
+full path to the target directory. In this case, the current directory
+is <B>not</B> the target directory.
+
+</UL>
+
+<A NAME=novpath>
+<H3>Simple rules file for compiling a library in the current directory</H3>
+</A>
+
+<BLOCKQUOTE>
+The <A HREF=#make_root><B><TT>${MAKE_ROOT}</TT></B></A> make variable must be 
+set at this point.
+
+<TABLE><TR><TD BGCOLOR=#C0C0C0>
+<PRE>
+
+#
+# Makefile system configuration files
+#
+include <A HREF="autoselect.html">$(MAKE_ROOT)/make/autoselect.cfg</A>
+include <A HREF="make.html">$(MAKE_ROOT)/make/make.cfg</A>
+
+#
+# The default rule is to create a library
+#
+all: lib
+
+#
+# Makefile system rules files
+#
+include $(MAKE_ROOT)/make/lib.rules
+</PRE>
+</TD></TR></TABLE>
+<P>
+The make configuration system configuration files <tt>autoselect.cfg</tt>
+may be included to set the make variables <TT><B>MAKE_UNAME</B></TT>,
+<TT><B>MAKE_CFG</B></TT> and <TT><B>MAKE_HOSTNAME</B></TT>.
+One may set these variables by hand or from other environment variables,
+since usually there is a standard way to set these, it is recommended
+to let <TT><A HREF="autoselect.html">autoselect.cfg</A></TT> find out
+their values.
+<P>
+It is also recommended to include <tt><A HREF="make.html">make.cfg</A></tt> 
+in the GNUmakefile.rules file to set a couple 
+of predefined architecture-specific make variables.
+These variables are used in several places to compile and make targets - 
+this is one of the conventions mentioned before.
+<P>
+The target library is generated using the make rules
+contained in $(MAKE_ROOT)/make/lib.rules,
+i.e. the target `lib' is defined there.
+$(MAKE_ROOT)/make/lib.rules `defines' (by convention) the make variables
+$(OBJS) and $(TARGET) that are expected to contain the names of the object
+files names and the name of the library - `defines' in this case meaning
+no more than occurrence as a make target resp. dependency of a rule.
+Both variables should be set in a target-specific GNUmakefile which includes
+this GNUmakefile.rules file, see <a href="GNUmakefile.html">example</a>
+GNUmakefile. This way several libraries can be generated using only this
+common single GNUmakefile.rules file. 
+
+<P>
+
+<A NAME=vpath>
+<H3>Rules file using the VPATH mechanism (cross-platform development in
+the same directory at the same time)</H3>
+</A>
+
+<TABLE><TR><TD BGCOLOR=#C0C0C0>
+<PRE>
+
+#
+# Automatic selection by uname, the optional environment variable
+# MAKE_CC may select a special configuration. `make arch-info' displays
+# a list of available configurations for the current system
+#
+include $(MAKE_ROOT)/make/autoselect.cfg
+
+#
+# The main configuration file which sets all required variables
+#
+include $(MAKE_ROOT)/make/make.cfg
+
+#
+# Use predefined suffix rules (.c --> .o etc.)
+#
+include $(MAKE_ROOT)/make/suffixes.rules
+
+all:    compilelib
+
+include $(MAKE_ROOT)/make/help.rules
+
+VPATH_TARGET=compilelib
+
+include $(MAKE_ROOT)/make/vpath.rules
+
+vpath_compilelib: lib
+
+include $(MAKE_ROOT)/make/lib.rules
+include $(MAKE_ROOT)/make/obj.rules
+</PRE>
+</TD></TR></TABLE>
+<P>
+
+[comment: This text is too complex...!]
+
+A `gmake' call on a GNUmakefile that includes this example GNUmake.rules file
+should be made without target specification or equivalently with default
+target `all' or with target `compilelib'. The latter is expected as the value
+of the variable VPATH_TARGET within the included `vpath.rules' file which 
+is a standard rules files of the make configuration system that contains a 
+rule by which object files can be put into another directory than source 
+files. This rule makes use of the GNUmake VPATH mechanism in the following 
+way: It has VPATH_TARGET as target, encodes a change of directory to another 
+one given by the variable $VPATH_MAKEDIR whose default is $OBJ_PATH, i.e. 
+to the preset object file directory $OBJ_PATH by default, sets the $VPATH
+variable to the current directory where the sources and the GNUmakefile
+are deposited, and calls `gmake' again on that same GNUmakefile (generating 
+a fully qualified pathname for invoking the latter from the $VPATH_MAKEDIR
+directory) with target `vpath_compilelib' (being composed from the fixed
+string `vpath_' and the $(VPATH_TARGET) target string). Thus the rule with
+target `lib' which is contained in the `lib.rules' file of the make
+configuration system and really creates the library is invoked and
+executed in the object file directory where object files are expected and
+remade if necessary by invoking a rule for compilation contained in the
+`suffixes.rules' file provided by the make configuration system, the
+path to source files being given by $VPATH. No change is required in the
+GNUmakefile of the source code directory, unless of course, the target 
+`lib' is quoted there explicitely in which case it only has to be replaced
+by `compilelib'.
+</BLOCKQUOTE>
+<P>
+
+
+
+<A NAME=external>
+<H3>Support for `external' targets and relations between targets</H3>
+</A>
+<BLOCKQUOTE>
+<TABLE><TR><TD BGCOLOR=#C0C0C0>
+<PRE>
+#
+# Support for `external' targets and relations between targets
+#
+include $(MAKE_ROOT)/make/external.rules
+</PRE>
+</TD></TR></TABLE>
+<P>
+See <a href="external.html">`Rules for external components'</a> for more
+information on usage and options.
+</BLOCKQUOTE>
+<P>
+
+
+
+<A NAME=dist>
+<H3>Support for creating distribution files</H3>
+</A>
+<BLOCKQUOTE>
+Using the distribution rules, you get the targets
+<TT><B>bindist</B></TT>, <TT><B>devdist</B></TT> and <TT><B>srcdist</B></TT>
+for each application target. It creates a <TT><B>.tar.gz</B></TT> for the
+current target files which is suitable for distribution.
+<TABLE><TR><TD BGCOLOR=#C0C0C0>
+<PRE>
+#
+#TAREXCLUDES+='--exclude=*.tga'
+#
+include $(MAKE_ROOT)/make/dist.rules
+</PRE>
+</TD></TR></TABLE>
+<P>
+See `<A HREF="dist.html">Creating distribution files</A>' for detailed information
+on usage.
+</BLOCKQUOTE>
+<P>
+
+
+<A NAME="info">
+<H3>Support for an `info' target</H3>
+</A>
+<BLOCKQUOTE>
+The <TT><B>arch-info</B></TT> just prints a short information about the current
+architecture, as a result of current <A HREF="make.html">make configuration options</A>.
+<TABLE><TR><TD BGCOLOR=#C0C0C0>
+<PRE>
+#
+# Provide an `info' target for current configurations settings
+#
+include $(MAKE_ROOT)/make/info.rules
+
+</PRE>
+</TD></TR></TABLE>
+<P>
+The current (architecture specific) make configuration settings will be
+shown with `<B><TT>make arch-info</TT></B>'.
+</BLOCKQUOTE>
+<P>
+
+<A NAME=depend>
+<H3>Support for makefile dependencies generated during compilation</H3>
+</A>
+<BLOCKQUOTE>
+Some compilers are able to generate information about dependencies for
+object files automatically during compilation.
+They write the dependency information of source code components on header files 
+in a make-compatible format to files, which can then be included in a makefile. 
+<P>
+This way rules for recompiling objects will be used for the next make run 
+if any header file has changed. How this is done in detail is predefined in the makefile
+configuration system for a couple of architectures, so the user or
+writer of an application rules file does not need to care about this.
+The name(s) of the dependcy information file(s) s contained in the make
+variable ${MAKEDEPENDENCIES}.
+<P>
+The recommended way to add this dynamic dependency information to
+the current make system is as follows:
+
+<TABLE><TR><TD BGCOLOR=#C0C0C0>
+<PRE>
+#
+# Support for makefile dependencies generated during compilation
+#
+-include $(MAKEDEPENDENCIES)
+
+depclean::
+        $(RM) $(OBJ_PATH)/$(MAKEDEPENDENCIES)
+
+</PRE>
+</TD></TR></TABLE>
+The target <B><TT>depclean</TT></B> removes all dependency information, which is
+sometimes required if the header files are restructured and, e.g., some header
+file does no longer exist.
+</BLOCKQUOTE>
+<P>
+
+
+<A NAME=subdirs>
+<H3>Support for executing make in subdirectories</H3>
+</A>
+<BLOCKQUOTE>
+<TABLE><TR><TD BGCOLOR=#C0C0C0>
+<PRE>
+#
+# 'dir1', 'dir2', 'dir3' assumed to be subdirectories of $(MAKE_ROOT)
+#
+
+TARGET_DIRS=dir1 dir2 dir3 
+
+my-appl: all
+
+include $(MAKE_ROOT)/make/multiple.rules
+
+</PRE>
+</TD></TR></TABLE>
+<P>
+If the root directory of your application contains several subdirectories
+and each of them a makefile that must be executed to build the entire
+application, make execution in subdirectories can be invoked from the 
+root level make file by including the <TT><B>multiple.rules</B></TT> file in the
+latter and setting the make variable TARGET_DIRS to contain a list of
+subdirectories as in the example. Recursive make execution  with respect
+to a directory tree can be invoked in the same way, i.e. the 
+<em>multiple.rules</em> file can be included in the makefile of each
+intermediate directory.
+</BLOCKQUOTE>
+
+</BODY>
+</HTML>

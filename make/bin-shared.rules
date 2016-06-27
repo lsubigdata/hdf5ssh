@@ -1,0 +1,249 @@
+ifndef	MAKE_BIN_SHARED_RULES
+MAKE_BIN_SHARED_RULES=1
+
+#
+# Main makefile for creating a binary executable using shared
+# libraries. The environment variable specified by $(MAKE_VAR)
+# is used at runtime to locate the shared libraries.
+#
+
+ifndef	OBJ_PATH
+OBJ_PATH=./obj/$(arch)
+endif
+
+ifndef	MAKE_VAR
+MAKE_VAR=`cd $$base/..; pwd`
+endif
+
+ifndef	MAKE_VAR
+MAKE_VAR=$${MAKE_ROOT}
+endif
+
+ifndef ARCH_DETECT
+ARCH_DETECT=$(MAKE_VAR)/make/arch
+endif
+
+#ifndef RUNTIME_LIBPATH
+#RUNTIME_LIBPATH=$(MAKE_VAR)/lib/$$arch/
+#endif
+
+ifndef	BINARY
+
+#
+# if BIN_PATH is defined, put all binaries into
+# this common directory.
+# BINARY is the absolute path to the architecture dependent
+# binary, EXEC_BINARY is the relative path from the shell 
+# script (the architecture-independent startup wrapper) to
+# the real binary. During startup, EXEC_BINARY is prefixed with
+# the directory where the shell script resides.
+
+ifdef BIN_PATH
+BINARY=$(BIN_PATH)/$(TARGET)
+EXEC_BINARY=$${arch}/$(TARGET)
+else
+#
+# if BIN_PATH is undefined, put the architecture specific binary
+# into the obj/ subdirectory of the local source code directory.
+# The name of the binary is chosen to be architecture-dependent in
+# this case. EXEC_BINARY is set to find this binary at runtime
+# accordingly.
+#
+BINARY=$(VPATH)obj/$(TARGET).$(arch)
+EXEC_BINARY=obj/$(TARGET).$$arch
+endif
+
+endif
+
+ifeq ($E,.exe)
+BINARY=$(VPATH)$(TARGET)$E
+endif
+
+ifndef	BINARCH_SCRIPT
+BINARCH_SCRIPT=$(BINDIR)/arch
+endif
+
+VPATH_TARGET=$(TARGET)-bin
+
+#
+# Exec-wrapper is no longer used.
+#
+#EXEC_WRAPPER_${MAKE_UNAME}=exec-wrapper
+#EXEC_WRAPPER_i686-w64-mingw32=
+#EXEC_WRAPPER=$(EXEC_WRAPPER_${MAKE_UNAME})
+EXEC_WRAPPER=
+
+BIN_TARGET_${MAKE_UNAME}=$(BINDIR)/$(TARGET)
+BIN_TARGET_i686-w64-mingw32=${BINARY}
+BIN_TARGET=$(BIN_TARGET_${MAKE_UNAME})
+
+bin: $(BIN_PATH) ${bin.ctor} $(VPATH_TARGET) ${EXEC_WRAPPER} ${bin.dtor}
+	@echo
+	@echo "Type 'make exec' to execute shared binary $(TARGET)"
+	@echo "Or manually invoke ${BINARY}"
+	@echo
+
+include $(MAKE_ROOT)/make/vpath.rules
+
+vpath_$(VPATH_TARGET): $(BINARY)
+
+ifndef OBJECTLIST_PARAMETERS
+OBJECTLIST_PARAMETERS=$(OBJS)
+endif
+
+$(BINARY): $(OBJS)
+	-$(RM) $@
+	unset MAKEFLAGS; $(LD) $(OBJECTLIST_PARAMETERS) $(LIBPATH_PARAMETERS) $(LDFLAGS) $(EXTRALIBS) $(OUTPUT_BINARY)$(TARGETFILE_PARAMETER)${LD_EXT} $(LIBS) $(CC_LIBS)
+
+
+include $(MAKE_ROOT)/make/exec-wrapper.rules
+
+#
+# OS-specific rules for copying the runtime library
+# files into the binary's directory to allow running
+# it independently
+#
+
+RUNTIME_LIBS_msys=${BIN_PATH}/mingwm10.dll
+
+RUNTIME_LIBS_mingw32=${BIN_PATH}/mingwm10.dll	\
+		${BIN_PATH}/libstdc++-6.dll				\
+		${BIN_PATH}/libgcc_s_dw2-1.dll
+
+RUNTIME_LIBS_i686-w64-mingw32=				\
+		${BIN_PATH}/libwinpthread-1.dll		\
+		${BIN_PATH}/libstdc++-6.dll
+
+#		${BIN_PATH}/libgcc_s_seh-1.dll		\		
+#	${BIN_PATH}/libgcc_s_dw2-1.dll
+
+SYS_LIBS_x86_64-w64-mingw32=libpng16-16.dll
+
+RUNTIME_LIBS_x86_64-w64-mingw32=				\
+		${BIN_PATH}/libwinpthread-1.dll		\
+		${BIN_PATH}/libgcc_s_seh-1.dll		\
+		${BIN_PATH}/libstdc++-6.dll			\
+		${BIN_PATH}/libpcre16-0.dll			\
+		$(addprefix ${BIN_PATH}/,$(SYS_LIBS_x86_64-w64-mingw32))
+
+	
+runtime_libs: $(RUNTIME_LIBS_${MAKE_UNAME})
+	@echo Installed $(RUNTIME_LIBS_${MAKE_UNAME}) for ${MAKE_UNAME}
+
+
+GCC_PATH_LOCATIONS=$(subst ;,/gcc.exe ,${PATH}))
+FOUND_GCC=$(firstword $(wildcard $(GCC_PATH_LOCATIONS)))
+FOUND_GCC_PATH=$(subst /gcc.exe,,$(FOUND_GCC))
+	
+findgcc:
+	@echo "Found GCC in $(FOUND_GCC_PATH)"
+	
+ifndef	MINGW_INSTALL_DIR
+#MINGW_INSTALL_DIR=/c/MinGW
+
+MINGW_INSTALL_DIR=$(subst bin,,$(FOUND_GCC_PATH))
+endif
+
+${BIN_PATH}/mingwm10.dll: ${MINGW_INSTALL_DIR}/bin/mingwm10.dll  ${BIN_PATH}
+	cp -u $< $@
+
+${BIN_PATH}/libgcc_s_dw2-1.dll: ${MINGW_INSTALL_DIR}/bin/libgcc_s_dw2-1.dll ${BIN_PATH}
+	cp -u $< $@
+
+${BIN_PATH}/libgcc_s_seh-1.dll: ${MINGW_INSTALL_DIR}/bin/libgcc_s_seh-1.dll ${BIN_PATH}
+	cp -u $< $@
+
+
+${BIN_PATH}/libstdc++-6.dll: ${MINGW_INSTALL_DIR}/bin/libstdc++-6.dll  ${BIN_PATH}
+	cp -u $< $@
+
+${BIN_PATH}/libwinpthread-1.dll: ${MINGW_INSTALL_DIR}/bin/libwinpthread-1.dll  ${BIN_PATH}
+	cp -u $< $@
+
+${BIN_PATH}/%.dll: ${MINGW_INSTALL_DIR}/bin/%.dll ${BIN_PATH}
+	@cp -v -f -u $< $@
+
+
+${MINGW_INSTALL_DIR}/bin/mingwm10.dll:
+ifneq (${MINGW_INSTALL_DIR}/bin/mingwm10.dll, $(wildcard ${MINGW_INSTALL_DIR}/bin/mingwm10.dll))
+	@echo
+	@echo '********************************************************'
+	@echo 'Problem: MinGW Runtime Library (mingwm10.dll) not found!'
+	@echo
+	@echo Set the variable MINGW_INSTALL_DIR to the MinGW installation
+	@echo directory such that $${MINGW_INSTALL_DIR}/bin/mingwm10.dll exists.
+	@echo
+	@echo Example:
+	@echo '    export MINGW_INSTALL_DIR=/c/MinGW; make'
+	@echo or
+	@echo '    make export MINGW_INSTALL_DIR=/c/MinGW'
+	@echo
+	@echo '********************************************************'
+	@exit 32
+else
+	@echo ok
+endif
+
+#
+# Support components 
+# creation of directory for the binary and `arch' script
+#
+
+ifndef	BIN_PATH_RULE
+BIN_PATH_RULE=true
+$(BIN_PATH):
+	-mkdir -p $@
+endif
+
+exec:	bin
+	$(EXECPREFIX) $(BINARY) $(ARGS)
+
+#	$(PREEXEC) $(BIN_TARGET) $(ARGS)
+
+
+#
+# Other targets
+#
+
+binclean::
+	-$(RM) $(TARGET)
+	-$(RM) $(BINARY)
+
+clean::	binclean
+
+
+help:: help.bin-shared
+
+help.bin-shared:
+	@ echo "Make targets from bin-shared.rules:"
+	@ echo "  bin .............. Create a binary $(BINARY)"
+	@ echo "  exec-wrapper ..... Create an architecture-independent invocator"
+	@ echo
+
+makevars:: makevars.bin-shared
+
+makevars.bin-shared:
+	@ echo 'Makevariables used by bin-shared.rules:'
+	@ echo '  TARGET ........... Target to be created'
+	@ echo '  BINARY ........... Name and path of true binary'
+	@ echo '                     (e.g., $${VPATH}/obj/$${TARGET}.$${arch}).'
+
+
+debug:: debug.bin-shared
+
+debug.bin-shared:
+	@ echo 'Makevariables used by bin-shared.rules:'
+	@ echo '  TARGET ........... $(TARGET)'
+	@ echo '  BINARY ........... $(BINARY)'
+	@ echo '  LD ............... $(LD)'
+	@ echo '  LIBS ............. $(LIBS)'
+	@ echo '  OBJS ............. $(OBJS)'
+	@ echo '  OBJ_PATH ......... $(OBJ_PATH)'
+	@ echo '  LDFLAGS .......... $(LDFLAGS)'
+	@ echo '  EXTRALIBS ........ $(EXTRALIBS)'
+	@ echo '  MAKE_VAR ......... $(MAKE_VAR)'
+	@ echo '  RUNTIME_LIBPATH .. $(RUNTIME_LIBPATH)'
+
+endif
+
+#endif defined(MAKE_BIN_SHARED_RULES)

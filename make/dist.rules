@@ -1,0 +1,260 @@
+# $Rev:$
+# $Log: dist.rules,v $
+# Revision 1.2  2007/08/30 23:04:04  werner
+# A larger code revision adding several essential features.
+#
+# Revision 1.1.1.1  2000/02/10 19:50:53  cvs
+# Makefile Configuration System
+#
+# Revision 1.29  1999/07/03 18:13:54  bzfbenge
+# Added C-header like ifndef/def/endif section, using variable
+# MAKE_DIST_RULES_INCLUDED
+# such that multiple includes of dist.rules don't harm and dist rules can
+# be redefined in a target makefile.
+#
+# Revision 1.28  1999/06/25 22:43:30  bzfzoeck
+# .
+#
+# Revision 1.27  1999/05/04 16:21:07  bzfbenge
+# Better support for QT
+#
+# Revision 1.26  1999/02/25 12:26:35  bzfbenge
+# Added a small `-' before some tar options, now it works somewhat better...
+#
+# Revision 1.25  1999/02/05 15:29:39  bzfskoro
+# Deactivated DISTBACKGROUNDCOMPRESS to make sure that a full tcl package
+# distribution file is produced by 'gmake [bin|dev]dist'.
+#
+# Revision 1.24  1999/01/22 15:45:51  bzfskoro
+# Touch .tar.gz file before starting background compression process, such
+# that the .tar.gz file exists immediatly after executing the make rule.
+# Should help to avoid nasty timing problems, when more than one make files
+# try to make the same .tar.gz file.
+#
+# Revision 1.23  1998/07/30 01:42:44  bzfbenge
+# help targets are `makevars.dist' and `debug.dist'.
+#
+
+#
+# dist.rules: Rules for creating distribution files 
+# (binary, source, developers)
+#
+
+ifndef	MAKE_DIST_RULES_INCLUDED
+MAKE_DIST_RULES_INCLUDED=true
+
+#
+# Where to put the distribution files (.tar.gz)
+#
+ifndef	DISTDIR
+DISTDIR=${MAKE_ROOT}/dist
+endif
+
+#
+# Relative to which directory should the distfiles be created?
+#
+ifndef	DIST_ROOT
+DIST_ROOT=${MAKE_ROOT}
+endif
+
+ifndef	DIST_ROOT_SRC
+DIST_ROOT_SRC=${DIST_ROOT}
+endif
+
+TAREXCLUDES+='--exclude=*/obj/*' '--exclude=old'   '--exclude=*.old*' '--exclude=*~'     \
+	     '--exclude=*/CVS/R*'     				      '--exclude=*.o'     \
+	     '--exclude=*/bak/*' '--exclude=*.bak'
+TAR=gtar
+
+
+#
+# Path name conversion (absolute paths to relative paths)
+# Debug help with `make debug-paths'.
+#
+
+ABSOLUTE_DISTROOT=$(shell cd ${DIST_ROOT}; /bin/pwd)/
+ABSOLUTE_THISDIR=$(shell /bin/pwd)/
+ABSOLUTE_LIBPATH=$(shell cd ${LIB_PATH}; /bin/pwd)/
+TAR_THISDIR=$(subst $(ABSOLUTE_DISTROOT),,$(ABSOLUTE_THISDIR))
+TAR_LIBPATH=$(subst $(ABSOLUTE_DISTROOT),,$(ABSOLUTE_LIBPATH))
+
+ABSOLUTE_DISTROOT_for_SRC=$(shell cd ${DIST_ROOT_SRC}; /bin/pwd)/
+TAR_THISDIR_for_SRC=$(subst $(ABSOLUTE_DISTROOT_for_SRC),,$(ABSOLUTE_THISDIR))
+
+SRC_TAR=${DISTDIR}/${TARGET}-src.tar
+DEV_TAR=${DISTDIR}/${TARGET}-${arch}-dev.tar
+BIN_TAR=${DISTDIR}/${TARGET}-${arch}.tar
+
+ifndef SRC_TAR_GZ
+SRC_TAR_GZ=${SRC_TAR}.gz
+endif
+ifndef DEV_TAR_GZ
+DEV_TAR_GZ=${DEV_TAR}.gz
+endif
+ifndef BIN_TAR_GZ
+BIN_TAR_GZ=${BIN_TAR}.gz
+endif
+
+#DISTBACKGROUNDCOMPRESS=&
+DISTBACKGROUNDCOMPRESS=
+
+
+debug-paths:
+	@echo 'Internal variables from dist.rules:'
+	@echo 'ABSOLUTE_DISTROOT         = $(ABSOLUTE_DISTROOT)'
+	@echo 'ABSOLUTE_THISDIR          = $(ABSOLUTE_THISDIR)'
+	@echo 'ABSOLUTE_DISTROOT_for_SRC = $(ABSOLUTE_DISTROOT_for_SRC)'
+	@echo 'ABSOLUTE_LIBPATH          = $(ABSOLUTE_LIBPATH)'
+	@echo 'TAR_THISDIR               = $(TAR_THISDIR)'
+	@echo 'TAR_THISDIR_for_SRC       = $(TAR_THISDIR_for_SRC)'
+	@echo 'TAR_LIBPATH               = $(TAR_LIBPATH)'
+	@echo 'SRC_TAR                   = ${SRC_TAR}'
+	@echo 'DEV_TAR                   = ${DEV_TAR}'
+	@echo 'BIN_TAR                   = ${BIN_TAR}'
+	@echo 'SRC_TAR_GZ                = ${SRC_TAR_GZ}'
+	@echo 'DEV_TAR_GZ                = ${DEV_TAR_GZ}'
+	@echo 'BIN_TAR_GZ                = ${BIN_TAR_GZ}'
+
+#
+# Generation of a source code distribution
+#
+
+srcdist:: ${srcdist.ctor} ${SRC_TAR_GZ} ${srcdist.dtor}
+
+${SRC_TAR_GZ}: * ${DIST_SRC_SUBDIR_DEPENCIES}
+	-mkdir -p ${DISTDIR} 
+	-$(RM) ${DISTDIR}/${TARGET}-src.tar
+	@cd ${DIST_ROOT_SRC};  \
+	$(TAR) $(TAREXCLUDES) -cvf ${SRC_TAR} $(TAR_THISDIR_for_SRC) ${SRCEXTRAS}
+	@$(MAKE) $(MAKECWD) srcdist.etc
+	@echo $@ created with the following files:
+	tar tvf ${SRC_TAR}
+	@touch $@
+	(gzip -c ${SRC_TAR} > ${SRC_TAR_GZ}; $(RM) ${SRC_TAR}) $(DISTBACKGROUNDCOMPRESS)
+
+srcdist.etc::
+
+#
+# Generation of a developer's distribution
+#
+		
+DEVPATTERN+=\.hpp$$|\.h$$|\.H$$|\.hh$$|\.xpm$$
+NOTDEVPATTERN+=old/
+ifndef DEV_DIST_DEPENDENCIES
+DEV_DIST_DEPENDENCIES=*.h*
+endif
+
+devdist:: ${devdist.ctor} ${DEV_TAR_GZ} ${devdist.dtor}
+
+${DEV_TAR_GZ}: ${DEV_DIST_DEPENDENCIES}
+	-mkdir -p ${DISTDIR} 
+	-$(RM) ${DEV_TAR}
+	@cd ${DIST_ROOT};  \
+	find ${TAR_THISDIR} -print| egrep '$(DEVPATTERN)' | egrep -v '$(NOTDEVPATTERN)' > /tmp/devdist-$$$$;   \
+	$(TAR) --files-from=/tmp/devdist-$$$$ -cvf ${DISTDIR}/${TARGET}-${arch}-dev.tar;         \
+	rm -f /tmp/devdist-$$$$; 								 \
+	if [ ! -z "${TARGETLIB}" ] ; then \
+	    $(TAR) rvf ${DEV_TAR} ${TAR_LIBPATH}/`basename ${TARGETLIB}` ; \
+	fi; \
+	if [ -r ${TAR_LIBPATH}/${TARGET}.cfg ]; then $(TAR) -rvf ${DEV_TAR} ${TAR_LIBPATH}/${TARGET}.cfg; fi
+	cd ${DIST_ROOT_SRC}; \
+	$(TAR) $(TAREXCLUDES) -rvf ${DEV_TAR} ${DEVEXTRAS}
+	@$(MAKE) $(MAKECWD) devdist.etc
+	@echo $@ created with the following files:
+	tar tvf ${DEV_TAR}
+	@touch $@
+	(gzip -c ${DEV_TAR} > ${DEV_TAR_GZ}; $(RM) ${DEV_TAR}) $(DISTBACKGROUNDCOMPRESS)
+
+devdist.etc::
+
+#
+# Generation of a binary distribution
+#
+
+bindist:: ${bindist.ctor} ${BIN_TAR_GZ} ${bindist.dtor}
+
+ifndef BIN_DIST_DEPENDENCIES
+BIN_DIST_DEPENDENCIES=
+endif
+
+${BIN_TAR_GZ}: ${BIN_DIST_DEPENDENCIES}
+	-mkdir -p ${DISTDIR} 
+	-$(RM) ${BIN_TAR}
+	@cd ${DIST_ROOT}; \
+	if [ ! -z "${TARGETLIB}" ] ; then \
+	    $(TAR) -cvf ${BIN_TAR} ${TAR_LIBPATH}/`basename ${TARGETLIB}` ; \
+	fi; \
+	if [ ! -z "${BINEXTRAS}" ] ; then \
+	    $(TAR) -rvf ${BIN_TAR} ${BINEXTRAS} ; \
+	fi
+	@$(MAKE) $(MAKECWD) bindist.etc
+	@echo $@ created with the following files:
+	tar tvf ${BIN_TAR}
+	@touch $@
+	(gzip -c ${BIN_TAR} > ${BIN_TAR_GZ}; $(RM) ${BIN_TAR}) $(DISTBACKGROUNDCOMPRESS)
+
+bindist.etc::
+
+#
+# Help system
+#
+
+help:: help.dist
+
+help.dist:
+	@ echo "Make targets from dist.rules:"
+	@ echo "  srcdist .......... Make a source code distribution"
+	@ echo "                     (${TARGET}-src.tar)"
+	@ echo "  devdist .......... Make a developer's distribution"
+	@ echo "                     (${TARGET}-${arch}-dev.tar)"
+	@ echo "  bindist .......... Make a binary distribution (${TARGET}-${arch}.tar)"
+	@ echo "           Files will be put in ${DISTDIR}"
+	@ echo 
+
+makevars:: makevars.dist
+
+makevars.dist:
+	@ echo 'Makevariables used by dist.rules:'
+	@ echo '  DISTDIR .......... Where to put the distribution files'
+	@ echo '                     (opt, $$MAKE_ROOT/dist).'
+	@ echo '  DIST_ROOT ........ Relative to what directory should the dist file'
+	@ echo '                     be created (opt, MAKE_ROOT).'
+	@ echo '  DIST_ROOT_SRC .... Relative to what directory should the source dist'
+	@ echo '                     file be created (opt,DIST_ROOT).'
+	@ echo '  TAREXCLUDES ...... Additional list of GNU tar exclude patterns (old,'
+	@ echo '                     CVS, *~, */obj/*). Exclude patterns must be given'
+	@ echo '                     in the form '--exclude=*.tga' '--exclude=*.gif''
+	@ echo '  DEVPATTERN ....... Additional rexexp for files in a dev distribution'
+	@ echo '                     (default .hpp$$|\.h$$|\.H$$|\.xpm$$).'
+	@ echo '  SRCEXTRAS ........ Additional files to put into a source distribution,'
+	@ echo '                     relative to $$DIST_ROOT.'
+	@ echo '  DEVEXTRAS ........ Additional files to put into a devel. distribution,'
+	@ echo '                     relative to $$DIST_ROOT.'
+	@ echo '  BINEXTRAS ........ Additional files to put into a binary distribution,'
+	@ echo '                     relative to DIST_ROOT. The relative target directory'
+	@ echo '                     may be used in its encoded form $$TARDIR.'
+	@ echo '  DEV_DIST_DEPENDENCIES .. list of rules to be made before a developers'
+	@ echo '                                              distribution can be made.'
+	@ echo '  BIN_DIST_DEPENDENCIES .. list of rules to be made before a binary'
+	@ echo '                                          distribution can be made.'
+	@ echo
+
+debug:: debug.dist
+
+debug.dist:
+	@ echo 'Makevariables used in dist.rules:'
+	@ echo '  DISTDIR .......... $(DISTDIR)'
+	@ echo '  DIST_ROOT ........ $(DIST_ROOT)'
+	@ echo '  DIST_ROOT_SRC .... $(DIST_ROOT_SRC)'
+	@ echo '  TAREXCLUDES ...... $(TAREXCLUDES)'
+	@ echo '  DEVPATTERN ....... $(DEVPATTERN)'
+	@ echo '  SRCEXTRAS ........ $(SRCEXTRAS)'
+	@ echo '  DEVEXTRAS ........ $(DEVEXTRAS)'
+	@ echo '  BINEXTRAS ........ $(BINEXTRAS)'
+	@ echo '  DEV_DIST_DEPENDENCIES . $(DEV_DIST_DEPENDENCIES)'
+	@ echo '  BIN_DIST_DEPENDENCIES . $(BIN_DIST_DEPENDENCIES)'
+	@ echo
+
+endif 
+#endif MAKE_DIST_RULES_INCLUDED
+

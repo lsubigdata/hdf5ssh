@@ -1,0 +1,20 @@
+MAKE_LEVEL:=$(MAKE_LEVEL)../
+
+include $(VPATH)$(MAKE_LEVEL)GNUmakefile.rules
+
+INCLUDES+=${hdf5_FLAGS} -I${VPATH}../../hdf5   \
+	-I${VPATH}../../toolslib
+
+LIBS+=${hdf5_LIB} -lhdf5tools 
+
+
+ifdef   zlib123_FLAGS
+SYSCFLAGS+=-DH5_HAVE_ZLIB_H  -DH5_HAVE_FILTER_DEFLATE=1 ${zlib123_FLAGS}
+LIBS+=${zlib123_LIB}
+endif
+
+ifdef   zlib1_FLAGS
+SYSCFLAGS+=-DH5_HAVE_ZLIB_H  -DH5_HAVE_FILTER_DEFLATE=1 ${zlib1_FLAGS}
+LIBS+=${zlib1_LIB}
+endif
+

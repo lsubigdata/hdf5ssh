@@ -1,0 +1,4 @@
+ incase this goes wrong try rebuilding:
+yacc -pH5LTyy -o H5LTparse.c -d H5LTparse.y
+lex -PH5LTyy -oH5LTanalyze.c H5LTanalyze.l
+

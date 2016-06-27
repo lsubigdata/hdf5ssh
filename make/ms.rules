@@ -1,0 +1,6 @@
+vcproj: ${TARGET}.vcproj
+
+
+${TARGET}.vcproj: 
+	sh ${MAKE_ROOT}/make/make-vcproj.sh ${TARGET} ${MAKE_LEVEL} $(subst .$O,.cpp,${OBJS}) >$@
+

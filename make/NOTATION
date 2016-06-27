@@ -1,0 +1,5 @@
+*.cfg files only contain variable settings.
+	They may be included more than once.
+
+*.rules files contain makefile targets.
+	They may be included only once.

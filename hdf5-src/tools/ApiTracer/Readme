@@ -1,0 +1,7 @@
+This modifies the hdf5 library to log api function calls into a log file. 
+
+Used to track down the memory consumption problem associated with loading
+file from inside a vish module, in comparison to a standalone example, which 
+uses more than a third less memory. 
+
+

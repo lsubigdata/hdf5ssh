@@ -1,0 +1,62 @@
+<HTML>
+<HEAD>
+<TITLE>target makefiles</TITLE>
+</HEAD>
+<BODY BGCOLOR=white>
+
+<H1>GNUmakefiles for targets</H1>
+
+The GNUmakefiles are the target/library/package-specific
+parts of the makefile configuration system and as such have
+to be written by respective developers, e.g. by a developer
+of a library which should be part of a larger application.
+<P>
+Writing such a GNUmakefile is supported to be as simple
+as possible, but that mainly depends on what is supported
+by the <A HREF="GNUmakefile.rules.html">GNUmakefile.rules</A>
+which is part of a specific application.
+So the following examples assume that the application's GNUmakefile.rules
+file uses some standard rules from the makefile configuration system.
+
+<H2>A GNUmakefile for creating a library</H2>
+This is the most usual case.
+You just need to specify a list of object files to be packed into your 
+library and its (shorthand) name as TARGET.
+Then include the GNUmakefiles.rules file from the root directory of your
+application, usually the parent directory of the target directory. If 
+that is referenced by a relative pathname it should be preceeded by the 
+VPATH variable (is normally empty, see description how
+<a href="GNUmakefile.rules.html#vpath"> VPATH </a> is used by the
+GNUmakefile configuration systems). A simple GNUmakefile looks like this:
+<TABLE><TR><TD BGCOLOR=#C0C0C0>
+<PRE>
+
+OBJS = hash.$O regex.$O vsscanf.$O
+TARGET = util
+
+include $(VPATH)../GNUmakefile.rules
+</PRE>
+</TD></TR></TABLE>
+Assuming your <A HREF="GNUmakefile.rules.html"> application GNUmakefile</a>
+is properly structured, i.e. according to the conventions of the makefile
+configuration system, several (GNUmake) targets will become available
+automatically, although not visible here, notably a 'help' target by 
+which all available targets will be shown in response to
+<B><TT>gmake help</TT></B>, and a default target
+by which a library named <TT>libutil.a</TT> or <TT>libutil.so</TT> will be
+created ('static' or 'shared' depending on which kind is supported by the
+OS) - or even <TT>libutil.sl</TT> or <TT>util.lib</TT> - as the result of
+the make processing initiated by invoking 'gmake' in the directory where 
+this GNUmakefile resides (that may also occur by nested make processing).
+The rules in the underlying GNUmakefile.rules file might also support
+the generation of distribution tar files or putting binary files into
+another directory than the source directory.
+If you want to compile your code under Windows, too, use $O for the
+extension of object files.
+
+<H2>Advanced <A HREF="concept.html#target">target</A> GNUmakefile's</H2>
+
+
+
+</BODY>
+</HTML>

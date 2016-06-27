@@ -1,0 +1,162 @@
+#
+# $Id: qt.rules,v 1.17 2008/02/05 20:32:26 werner Exp $
+#
+# Usage for qt.rules:
+#
+# Create a target depending on all *.moc files,
+# and explicitely state the first inclusion dependency,
+# e.g.:
+#
+# moc: Object.moc
+#
+# Object.cpp: Object.moc
+#
+# whereby it is assumed that Object.cpp includes
+# Object.moc and Object.moc is generated out of Object.h
+# or Object.hpp .
+#
+
+#
+# NOTE: The .moc files are generated in the source code
+# directory. If competing architectures have different
+# meta object compilers, this would lead to false results.
+# There is a way to make this work, but there is no reason
+# thinkable why the meta object compiler should behave 
+# different on different architectures, so there is no
+# reason to do so.
+#
+
+# 11.5.99:
+# Better don't change global LIB/INCLUDES variables here, package which like
+# to use QT must add QTLIBS/QTINCLUDES to their INCLUDES/LIBS variables themselves.
+# (otherwise even targets that don't need QT would be required to link with QT).
+#
+
+-include $(LIB_PATH)/qtref.cfg-setup
+
+# ifdef	QTDIR
+
+# ifndef	QTLIBS
+
+# #
+# # lets keep qt3 as default. QTLIBS will be overwritten anyway if Q=qt4 is set
+# #
+# # ah. better remove -L${QTDIR}/lib from the link path, because the qt library
+# # is better be copied or symlinked into the default libpath anyway such that
+# # it can be found at runtime. This way we get problems in case of errors already
+# # at linktime, not yet at runtime.
+# #
+# QTLIBS_${MAKE_UNAME} = -lqt
+# QTLIBS_msys = -lqt-mt3
+# QTLIBS = $(QTLIBS_${MAKE_UNAME})
+
+
+# ifeq ($(Q),qt4)
+
+# # Qt4 default setting
+# QTLIBS_${MAKE_UNAME} = -L$(QTDIR)/lib -lQt3Support -lQtCore -lQtGui -lQtOpenGL -lQtNetwork -lQtXml -lQtSvg
+
+# # Qt4 windows libs
+# QTLIBS4WIN = -L$(QTDIR)/lib -lQt3Support4 -lQtCore4 -lQtGui4 -lQtOpenGL4 -lQtNetwork4 -lQtXml4 -lQtSvg4
+
+# QTLIBS_cygwin = $(QTLIBS4WIN)
+# QTLIBS_msys = $(QTLIBS4WIN)
+
+# # untested, probably doesnt work:
+# QTLIBS_VisualC = $(QTLIBS4WIN)
+
+# QTLIBS = $(QTLIBS_${MAKE_UNAME})
+
+# endif
+
+
+# endif
+
+# ifndef	QTINCLUDES
+
+# QTINCLUDES_$Q = -I$(QTDIR)/include
+
+# QTINCLUDES_qt4 = -DQT3_SUPPORT -I$(QTDIR)/include -I$(QTDIR)/include/Qt -I$(QTDIR)/include/QtGui -I$(QTDIR)/include/Qt3Support -I$(QTDIR)/include/QtCore
+
+# QTINCLUDES = ${QTINCLUDES_$Q}
+
+# endif
+
+# ifndef	MOC
+# MOC=$(QTDIR)/bin/moc
+# endif
+
+# else
+# QTINCLUDES = -I/usr/include/qt3
+# QTLIBS     = -lqt-mt
+# endif
+
+
+QTINCLUDES += -DINCLUDE_MOC
+
+ifndef	MOCFILES
+MOCFILES=${addprefix ${OBJ_PATH}/,${MOCSRC}}
+endif
+
+# # mingw32-make ?
+ifneq (,$(findstring :/,$(SHELL)))
+MOCEXE=$(subst /c/,c:/,$(MOC))
+else
+MOCEXE=$(MOC)
+endif
+
+QRCC=$(subst rcc-qt4,rcc,$(subst moc,rcc,${MOC}))
+
+
+# Some often used rules for the QT library
+#
+
+.SUFFIXES: .h .hpp .moc .qrc
+
+.h.moc:
+	$(MOCEXE) -o $@ $<
+
+.hpp.moc:
+	$(MOCEXE) -o $@ $<
+
+.qrc.cpp:
+	$(QRCC) -compress 9 -o $@  $<
+
+
+${OBJ_PATH}/%.moc: ${VPATH}%.hpp
+	$(MOCEXE) -o $@ $<
+ifdef	MAKE_CREATE_MOC_INCLUDES
+	@echo '#include "$(notdir $@)"' > $(dir $@)moc_$(subst .moc,.cpp,$(notdir $@))
+endif
+
+clean::
+	-$(RM) *.moc 
+
+#
+# This VPATH rules creates .moc files in the
+# object directory
+#
+VPATH_TARGET=qt_meta_object_compile
+
+vmoc:  qt_meta_object_compile
+
+include $(MAKE_ROOT)/make/vpath.rules
+ 
+vpath_qt_meta_object_compile: $(MOCFILES)
+
+#
+# Now we also need to add the object directory where
+# the .moc files reside to the include path.
+#
+QT_INCLUDES+=-I${OBJ_PATH}
+
+# ifdef	Q
+# EXPORTS=$(subst $Q,,${TARGET})
+# endif
+ 
+moc.inc: Makefile *.hpp
+	@echo MOCSRC=$(subst .hpp,.moc, $(shell grep -F -l Q_OBJECT $(wildcard *.hpp) ) ) > $@
+
+mocdeps.inc: Makefile
+	@grep -l -F Q_OBJECT *.hpp | awk '{base=$$1; sub(".hpp","",$$base); printf "$${VPATH}%s.cpp: $$(OBJ_PATH)/%s.moc\n",$$base,$$base }' >> $@
+

@@ -1,0 +1,26 @@
+#!/bin/sh
+
+MAKE_UNAME=${MAKE_UNAME:-`uname`}
+
+case $MAKE_UNAME in
+	IRIX64)	
+		if [ -z "$USE_IRIX64" ]
+		then
+			MAKE_UNAME=IRIX
+		fi;;
+	UNICOS/mk)	MAKE_UNAME=T3E;;
+	sn6311)		MAKE_UNAME=T3E;;
+	HI-UX/MPP)	MAKE_UNAME=HIUX;;
+	CYGWIN*)	MAKE_UNAME=cygwin32;;
+	MINGW*)		MAKE_UNAME=msys;;
+	Linux)		
+			MAKE_KERNEL_RELEASE=$(uname -r)
+			MAKE_OSFLAVOR=.${MAKE_KERNEL_RELEASE##*.}
+			MAKE_UNAME=Linux$(uname -m)
+			;;
+esac
+
+make_arch=arch-${MAKE_UNAME}-${MAKE_CFG:-Optimize}${MAKE_OSFLAVOR}
+
+echo ${arch:-$make_arch}
+

@@ -1,0 +1,11 @@
+For compiling under Windows, there are several options
+regarding which compiler to chose. This selection has
+to be done by hand by setting the MAKE_UNAME environment
+variable:
+
+  MAKE_UNAME=CYGWIN_NT-5.0 (default)  using GNU C/C++ compiler
+
+  MAKE_UNAME=VisualC		      using Microsoft Visual C/C++
+
+  MAKE_UNAME=IntelC		      using Intel C/C++
+

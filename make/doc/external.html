@@ -1,0 +1,221 @@
+<HTML>
+<HEAD>
+<TITLE>Rules for external libraries</TITLE>
+</HEAD>
+<BODY BGCOLOR=white>
+
+<H1>Rules for external componenents</H1>
+
+<H2>Concept</H2>
+
+The purpose of <em>external.rules</em> is to provide make targets for
+libraries which are somehow used within an application, but are not
+part of the source code being developed. An external target may be
+any component that is required for making other targets. A rule with
+an external target may involve a search for some files, e.g. for the 
+X11 or jpeg library, and setting flags according to the result by `make'.
+An external target may be considered as a component of a configuration
+utilitity, comparable to GNU's `configure', but the `external' target 
+is just one such element for a specific purpose. It may also be 
+exchanged by some other component, e.g. a binary distribution of an
+installed library (which is only referenced by an external makefile) or
+by a full source code distribution, which is handled like any other 
+source code target.
+<P>
+An external target rule searches/configures an external component to make 
+it available to other targets.
+
+<H2>Usage</H2>
+
+In general, an external component contains a makefile with information
+where to put files for a specific architecture and which variables are
+associated to this architecture. There are no restrictions to the behaviour 
+of an external makefile, it could do anything related to the underlying
+component (e.g. call `configure' or `imake', etc.).
+<P>
+Normally, an external target does not use the default target of an included
+GNUmakefile.rules file, so a simple external makefile typically starts like
+this:
+<PRE>
+this_all: do_external
+
+include $(VPATH)../GNUmakefile.rules
+
+do_external:
+	...
+</PRE>
+In <TT>do_external</TT> any rule may be given, which makes use of variables
+like CFLAGS or LIB_PATH etc.
+
+<P>
+Among the rules provided in <em>external.rules</em> there are some to set make
+variables depending on the behaviour of an external makefile. These rules
+are set up such as to intrinsically match the rest of the makefile 
+configuration system. They may replace the ones referenced by the 
+<TT>do_external</TT> word in the above example, or they may be used in
+addition to them.
+
+<H4>Unconditional externals</H4>
+Unconditional externals are components which are likely to be used by many
+components and should be visible to all other components. To <b>force</b>
+visibility of an external target a rule
+<TT><B>global-config:</B></TT> is provided by the make configuration system
+which modifies the global MAKE variables <TT>SYSCFLAGS</TT> and
+<TT>LDFLAGS</TT>:
+<PRE>
+	SYSCFLAGS+=$(TARGET_CFLAGS)
+	LDFLAGS+=$(TARGET_LDFLAGS)
+</PRE>
+The variables TARGET_CFLAGS and TARGET_LDFLAGS have to be defined in the external
+target's Makefile. Their values are used in addition to other configuration-defined
+variable values for compiling <EM>any</EM> other component.
+
+
+<H4>Conditional externals</H4>
+Conditional externals are components that may not be present but may be used
+by other components if they are available and can be found somehow. To <b>allow</b>
+visibility of an external target to other makefile targets a rule
+<tt><b>visible:</b></tt> is provided by the make configuration system which sets
+the global MAKE variables $(TARGET)_FLAGS and $(TARGET)_LIB:
+<PRE>
+	$(TARGET)_FLAGS=$(TARGET_FLAGS)
+	$(TARGET)_LIB=$(TARGET_LIB)
+</PRE>
+The variables TARGET_FLAGS and TARGET_LIB have to be defined in the external
+Makefile. Then their values are - globally - available in the make 
+variables $(TARGET)_FLAGS and $(TARGET)_LIB (after `make visible' has been
+done for the external target).
+<P>
+E.g. a search for a library called <TT>libimg.a</TT> may be initiated in
+the external makefile, and if this library is installed on the local system,
+the source code of some targets is to be compiled with a compiler option
+<TT>-Dwith_IMG</TT> as usually indicated by source code lines:
+<PRE>
+#ifdef with_IMG
+	...
+#endif
+</PRE>
+Then the external makefile must also contain the assignments
+<PRE>
+TARGET=IMG
+TARGET_FLAGS=-Dwith_IMG
+TARGET_LIB=-limg
+</PRE>
+(these flags may also contain <TT>-L&lt;dir&gt;</TT> or <TT>-I&lt;dir&gt;</TT> directives
+for extending the compiler/linker search path)
+<P>
+Now, in the <EM>target makefile</EM>, where these flags are used, add 
+the two lines
+<PRE>
+CFLAGS+=$(IMG_FLAGS)
+LIBS  +=$(IMG_LIB)
+</PRE>
+If the external library could not be found
+(or if there is no external makefile for this component at all),
+<TT>$(IMG_FLAGS)</TT> and <TT>$(IMG_LIB)</TT> will be empty and the standard
+variables <TT>CFLAGS</TT> and <TT>LIBS</TT> will be left unaltered.
+<P>
+<EM>Note:</EM> A Makefile target using conditional externals must be set up to correspond
+to the external makefile, e.g. it must use the variable IMG_FLAGS, which is defined in an
+external makefile with the target IMG. Therefore if a new conditional external is added
+to a makefile configuration, all makefiles of components that are to benefit
+from this new conditional external have to be modified accordingly (that
+normally applies to the source codes as well). An unconditional external does 
+not require any changes in target makefiles, any unconditional external becomes
+visible to all other make targets immediatly.
+
+
+<H3>Internals</H3>
+Setting and extending global makefile variables is done by writing make commands
+into an architecture-specific configuration file, namely <TT>$(LIB_PATH)/$(TARGET).cfg</TT>,
+or <TT><B>$(TARGETCFG)</B></TT>. The contents of all <TT>.cfg</TT>-files in the
+$(LIB_PATH) directory is used for each make run.
+<P>
+To remove the configuration variables for a specific target, the make
+target <TT><b>remove-config:</b></TT> may be used. It simply removes the 
+specified config file.
+
+<H3>Searching</H3>
+
+A problem arising with these provided targets is how to
+get the correct values for <TT>TARGET_LDFLAGS</TT> or <TT>TARGET_LIBS</TT> etc. 
+(which in most cases is a search path for an installed library or for include
+ file).
+
+<UL>
+<LI> <B>Manual:</B><BR> The easiest way (for the makefile provider) is to let
+	the user specify the values of these variables during invocation of make:
+<PRE>
+$ make visible "TARGET_FLAGS=-Dwith_IMG -I/usr/include/imglib/" "TARGET_LIB=-L/usr/local/img-lib/ -limg"
+</PRE>
+This will work in any case (even if externals are configrued automatically as
+described below). The disadvantage is that this requires user interaction and
+a user has to type these lines for any external target that is configured manually.
+Moreover the user would have to be informed if this target has to be configured as
+a conditional or unconditional one, although this information could be printed by the
+default rule as some help message.
+<P>
+
+<LI> <B>Centrally configured</B><BR>
+A common make include file might be provided for by all external makefiles,
+e.g. a <TT>local-config.cfg</TT> of some kind. In this case all variables
+for external packages may be set in this file, so the user may change some
+default values, editing this file.
+ E.g. the <TT>../local-config.cfg</TT> file could contain the lines
+<PRE>
+PATH_TO_IMGLIB=/usr/local/img-lib
+INCLUDE_FOR_IMGLIB=/usr/include/imglib
+</PRE>
+and the corresponding external makefile would be:
+<PRE>
+TARGET=img
+
+this_all: visible
+
+include $(VPATH)../GNUmakefile.rules
+include $(VPATH)../local-config.cfg
+
+TARGET_FLAGS=-Dwith_IMG -I$(INCLUDE_FOR_IMGLIB)
+TARGET_LIB  =-L$(PATH_TO_IMGLIB) -limg
+</PRE>
+<EM>Note:</EM>If the <TT>local-config.cfg</TT> file can be included by other target
+makefiles and the external component is supposed to be unconditional, then it 
+may contain lines for setting external package variables directly, e.g.
+<TT>CFLAGS+=-I/usr/local/img-lib -Dwith_IMG</TT> etc.
+There would be no need to use an external makefile at all in this case.
+<P>
+
+<LI> <B>Automatic:</B><BR>
+The most advanced method is to search an external component using some search
+script (preferably done in a shell).
+This script would have to set the variables mentioned above.
+For simplicity its output could directlty be written to the target
+configuration file:
+<PRE>
+TARGET=X11
+
+X11:    search 
+
+include $(VPATH)../GNUmakefile.rules
+
+search: $(LIB_PATH)
+        ./search.sh > $(TARGETCFG)
+
+</PRE>
+(The $(LIB_PATH) dependency is required to create the LIB_PATH directory, where
+the target configuration file will be stored, if this directory does not yet
+exist.)
+Now it is the task of the <TT>search.sh</TT> script to produce an output like
+<PRE>
+X11_FLAGS= -I/usr/X11R6/include -DWITH_X11
+X11_LIBS = -L/usr/X11R6/lib -lX11
+</PRE>
+which has to be compatible with the unconditional/conditional structure
+mentioned above. At least the provided variables must be used in makefiles
+that are to make use of this external package.
+</UL>
+
+
+
+</BODY>
+</HTML>

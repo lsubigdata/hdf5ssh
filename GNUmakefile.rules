@@ -1,0 +1,28 @@
+ifndef	MAKE_ROOT
+ifdef	MAKE_LEVEL
+MAKE_ROOT:=$(VPATH)${MAKE_LEVEL}
+else
+MAKE_ROOT:=..
+endif
+endif
+
+ifneq (,$(findstring :/,$(SHELL)))
+BINPWD:=sh -c "pwd -W"
+else
+BINPWD:=/bin/pwd
+endif
+
+MAKE_ROOT:=$(shell cd ${MAKE_ROOT}; $(BINPWD))
+
+#
+# Ok. This make system is very modular and is 
+# highly configureable in many respects. However,
+# it turns out that a certain set of configuration
+# is mostly used for all applications. So, this
+# standard configuration is now casted into the
+# all.rules file which should make it easier to 
+# build new applications.
+#
+#
+include $(MAKE_ROOT)/make/all.rules
+

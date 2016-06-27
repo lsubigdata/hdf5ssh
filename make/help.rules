@@ -1,0 +1,47 @@
+#
+# This make module should be the first rule file included, such that this
+# help screen appears above others.
+#
+help::
+	@ echo 
+	@ echo '--- Help screen for available make targets --- '
+	@ echo
+	@ echo 'Make targets from help.rules:'
+	@ echo '  help ............. shows description of all possible targets'.
+	@ echo '  makevars ......... describes the make variables in use'.
+	@ echo '  debug ............ displays the current settings of the make variables.'
+	@ echo 
+
+makevars::
+	@ echo
+	@ echo '--- Make variables in use --- '
+	@ echo
+	@ echo "  Use \`make debug' to view the current settings of these variables."
+	@ echo General variables:
+	@ echo '  CC ............... the C compiler to be used.'
+	@ echo '  CXX .............. the C++ compiler to be used.'
+	@ echo '  CFLAGS ........... parameters for the C compiler'
+	@ echo '        Normally set to: $$(SYSCFLAGS) $$(INCLUDES) $$(MAKEDEP_FLAGS) $$(CFLAGS_${A})'
+	@ echo '  CXXFLAGS ......... parameters for the C++ compiler'
+	@ echo '        Normally set to: $$(SYSCFLAGS) $$(INCLUDES) $$(MAKEDEP_FLAGS) $$(CFLAGS_${A})'
+	@ echo '  SYSCFLAGS ........ compiler parameters required for the current configuration'
+	@ echo '  INCLUDES ......... compiler parameters for this makefile configuration application'
+	@ echo '  MAKEDEP_FLAGS .... compiler parameters for generation of makefile dependencies'
+	@ echo '  CFLAGS_so ........ compiler parameters for Unix shared library generation'
+	@ echo
+
+debug::
+	@ echo
+	@ echo '--- Current settings of make variables --- '
+	@ echo
+	@ echo 'General variables:'
+	@ echo '  CC ............... $(CC)'
+	@ echo '  CXX .............. $(CXX)'
+	@ echo '  CFLAGS ........... $(CFLAGS)' 
+	@ echo '  CXXFLAGS ......... $(CXXFLAGS)' 
+	@ echo '  SYSCFLAGS ........ $(SYSCFLAGS)'
+	@ echo '  INCLUDES ......... $(INCLUDES)'
+	@ echo '  MAKEDEP_FLAGS .... $(MAKEDEP_FLAGS)'
+	@ echo '  CFLAGS_so ........ $(CFLAGS_so)'
+	@ echo 
+

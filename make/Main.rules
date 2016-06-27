@@ -1,0 +1,111 @@
+#
+# THIS FILE IS AN EXAMPLE TOPLEVEL GNUmakefile.rules FILE
+#
+# It is not to be included from the make/ configuration directory
+# but to be copied into an application's root directory and
+# modified according to the application's specific requirements
+#
+
+#
+# First issue: create a suitable MAKE_ROOT variable from
+# the information that we have when this makefile is
+# included from a subdirectory.
+#
+ifndef  MAKE_ROOT
+ifdef   MAKE_LEVEL
+MAKE_ROOT:=$(shell cd $(VPATH)${MAKE_LEVEL}; /bin/pwd)
+else
+MAKE_ROOT:=$(shell cd ..; /bin/pwd)
+endif
+else
+MAKE_ROOT:=$(shell cd ${MAKE_ROOT}; /bin/pwd)
+endif
+                                                                                                                                   
+#
+# Automatic selection by uname, the optional environment variable
+# MAKE_CC may select a special configuration. `make arch-info' displays
+# a list of available configurations for the current system
+#
+include $(MAKE_ROOT)/make/autoselect.cfg
+
+#
+# The main configuration file which sets all required variables
+#
+include $(MAKE_ROOT)/make/make.cfg
+
+#
+# Use predefined suffix rules (.c --> .o etc.)
+#
+include $(MAKE_ROOT)/make/suffixes.rules
+
+ifeq	($A,so)
+all: 	${all.ctor} $(SRC) compile compile-static ${all.dtor}
+
+#
+# WARNING: The STATICSUBDIR must not end with a /,
+# because the LIB_PATH_STATIC is added to the include paths
+# of the C/C++ compiler and there are silly compilers out there
+# which cannot handle include paths ending with a /. Only the
+# path itself may be contained in an include path.
+#
+STATICSUBDIR=/static
+LIB_PATH_STATIC=$(LIB_PATH)$(STATICSUBDIR)
+
+compile-static: $(LIB_PATH_STATIC)
+	@$(MAKE) --no-print-directory A=a compile $(MAKE_CWD) LIB_PATH=$(LIB_PATH_STATIC)
+
+$(LIB_PATH)/static:
+	-mkdir -p $@
+
+else
+
+LIB_PATH_STATIC=$(LIB_PATH) -L$(LIB_PATH)/static
+
+recursive-all:
+	${MAKE} all TARGET=${TARGET}
+
+all:    ${all.ctor} $(SRC) compile ${all.dtor}
+
+endif
+
+include $(MAKE_ROOT)/make/help.rules
+
+VPATH_TARGET=compile
+
+include $(MAKE_ROOT)/make/vpath.rules
+
+vpath_compile: lib
+
+include $(MAKE_ROOT)/make/lib.rules
+include $(MAKE_ROOT)/make/obj.rules
+
+
+MAKE_VAR=$${base}/../
+
+include $(MAKE_ROOT)/make/bin-static.rules
+
+include $(MAKE_ROOT)/make/vmore.rules
+
+#
+# Support for distribution generation
+#
+TAREXCLUDES+='--exclude=*.tga'
+SRCEXTRAS+=${MAKEFILE} GNUmakefile.rules Main.rules make/
+DEVEXTRAS+=GNUmakefile.rules make/
+#include $(MAKE_ROOT)/make/dist.rules
+
+#
+#
+include $(MAKE_ROOT)/make/external.rules
+
+#
+# Provide a `info' target for current configurations settings
+#
+include $(MAKE_ROOT)/make/info.rules
+
+-include $(MAKEDEPENDENCIES)
+
+depclean::
+	$(RM) $(OBJ_PATH)/$(MAKEDEPENDENCIES)
+
+

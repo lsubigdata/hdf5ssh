@@ -1,0 +1,46 @@
+ifndef	INSTDIR
+error::
+	@echo Variable INSTDIR must be defined prior inclusion of make/install.rules
+endif
+
+INSTALLED_STATUS=${INSTDIR}/.status/
+INSTALLED=${INSTALLED_STATUS}/${TARGET}-${arch}-dev.installed
+
+GZCAT=gzip -dc
+
+install: ${install.ctor} devdist ${INSTALLED_STATUS} $(INSTALLED) ${install.dtor}
+
+$(INSTALLED): ${DEV_TAR_GZ}
+	@echo '*******************************************'
+	@echo '*   Installing package ${TARGET} into ${INSTDIR}
+	@echo '*******************************************'
+	$(GZCAT) ${DEV_TAR_GZ} | (cd $(AMIRA_ROOT); tar xvf -)
+	touch $@
+
+${INSTALLED_STATUS}:
+	mkdir -p $@
+
+#
+################################# HELP SECTION
+#
+help:: help.install
+
+help.install:
+	@ echo 'Make targets from install.rules:'
+	@ echo '  install .......... install compiled package ${TARGET},'
+	@ echo '                     specified by the current $$INSTDIR'
+	@ echo
+
+makevars:: makevars.install
+
+makevars.install:
+	@ echo 'Make variables used in install.rules:'
+	@ echo '  INSTDIR .......... the destination directory where to unpack the package files.'
+
+debug::	debug.install
+
+debug.install:
+	@ echo 'Make variables from install.rules:'
+	@ echo '  INSTDIR .......... ${INSTDIR}'
+
+ 

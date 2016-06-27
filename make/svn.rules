@@ -1,0 +1,11 @@
+ifdef	MAKE_ENABLE_SVN
+
+SVN_BIN=$(wildcard /usr/bin/svn /*/*/*/bin/svn.exe)
+
+ifneq ($(SVN_BIN),)
+SVN_INFO=-DHAVE_SVN_INFO $$($(SVN_BIN) info $< | awk '{ var=gensub(/(.*): (.*)/, "\\1=\"",1); gsub(/ /,"_",var); val=gensub(/(.*): (.*)/,"\\2\"",1); gsub(/ /,"_",val);  print "-DSVN_" var  val}')
+endif
+
+endif
+
+

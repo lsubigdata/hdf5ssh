@@ -1,0 +1,165 @@
+# lib.rules: rules for building libraries
+
+#
+# The make variable $(TARGET) must be set before file inclusion
+# The inclusion adds a make target `lib' for creating the requested
+# library out of all files in the $(OBJS) list.
+#
+
+#
+# Library selection: The variable $A selects between
+#	DOS/Windows libraries:  A = lib
+#	Unix static libraries:  A = a
+#	Unix shared libraries:  A = so
+#
+
+DLL_PATH=${LIB_PATH}
+
+# File name for a specific library
+TARGET_lib= $(LIB_PATH)/$(TARGET).lib
+TARGET_a  = $(LIB_PATH)/lib$(TARGET).a
+TARGET_so = $(LIB_PATH)/lib$(TARGET).$(SHAREDLIB_SUFFIX)
+TARGET_dll = $(DLL_PATH)/$(TARGET).dll
+TARGET_dylib = $(LIB_PATH)/lib$(TARGET).dylib
+
+# The file name to be used here
+TARGETLIB = ${TARGET_$(A)}
+
+
+ifndef	MAKE_LIB_RULES
+MAKE_LIB_RULES=1
+
+lib:  ${lib.ctor} $(LIB_PATH) subdirs $(TARGETLIB) ${lib.dtor}
+
+ifndef	OLD_CYGWIN
+$(LIB_PATH):
+	-@mkdir -p $@
+else
+$(LIB_PATH):
+	-@mkdir -p $(subst /cygdrive/,//,$@)
+endif
+
+subdirs::
+
+
+#
+# Rule how to create a static library
+#
+$(LIB_PATH)/lib$(TARGET).a: $(OBJS) ${MORE_OBJS}
+	-$(RM) $@
+	$(AR) rv $@ $(OBJS) ${MORE_OBJS}
+	-$(RANLIB) $@
+
+LLIBS=${LIBS} ${LIBS_${MAKE_UNAME}}
+
+#
+# Rule how to create a shared library (Linux, IRIX, ...)
+# File Extension .so
+#
+$(LIB_PATH)/lib$(TARGET).so: $(OBJS) ${MORE_OBJS}
+	-$(RM) $@
+	unset MAKEFLAGS; $(LINK_SHARED) $(OBJS) ${MORE_OBJS} -o $@ $(RPATH) $(LLIBS) $(CC_LIBS) 
+
+
+#
+# CYGWIN dll's
+#
+#$(BIN_PATH)/$(TARGET).dll: $(OBJS) ${MORE_OBJS}
+#	-$(RM) $@
+#	$(LINK_SHARED) $(OBJS) ${MORE_OBJS} -o $@ -Wl,--out-implib,$(LIB_PATH)/lib$(TARGET).dll.a $(LLIBS) $(CC_LIBS) 
+
+#
+# MINGW dll's (should also work with CYGWIN dll's)
+#
+$(DLL_PATH)/$(TARGET).dll: $(OBJS) ${MORE_OBJS}
+	-$(RM) $@
+	$(LINK_SHARED) $(OBJS) ${MORE_OBJS} $(OUTPUT_BINARY)$(TARGETFILE_PARAMETER) $(LLIBS) $(CC_LIBS) 
+
+#	$(LINK_SHARED) $(OBJS) -o $@ $(LLIBS) $(CC_LIBS) 
+
+#
+#
+# Rule how to create a shared library (HPUX, ?)
+# File extension.sl
+#
+$(LIB_PATH)/lib$(TARGET).sl: $(OBJS) ${MORE_OBJS}
+	-$(RM) $@
+	$(LINK_SHARED) $(OBJS) ${MORE_OBJS} -o $@ $(RPATH) $(LLIBS)
+
+#
+# Rule how to create a MSDOS/Windows library
+#
+$(LIB_PATH)/$(TARGET).lib:	$(OBJS) ${MORE_OBJS}
+	lib -OUT:$(TARGETFILE_PARAMETER) $(OBJS) ${MORE_OBJS}
+
+#
+# Rule how to create a shared library on MacOS
+# File Extension .dylib
+#
+$(LIB_PATH)/lib$(TARGET).dylib: $(OBJS) ${MORE_OBJS}
+	-$(RM) $@
+	unset MAKEFLAGS; $(LINK_SHARED) $(OBJS) ${MORE_OBJS} -o $@ $(RPATH) $(LLIBS) $(CC_LIBS) 
+
+#
+# Rule how to remove the built library from the object directory
+#
+libclean::
+	-$(RM) $(TARGETLIB) &
+
+clean::
+	-$(RM) *.o so_locations $(MAKEDEPENDENCIES)
+	-$(RM) -rf ii_files/
+
+
+help:: help.lib
+
+help.lib:
+	@ echo 'Make targets from lib.rules:'
+	@ echo '  lib .............. compile library ${TARGETLIB}, specified by the current $$TARGET'
+	@ echo '                     the compiled library will be copied into $$LIB_PATH'
+	@ echo '  libclean ......... delete library ${TARGETLIB} from the object directory'
+	@ echo '                     library directory'
+	@ echo
+
+makevars:: makevars.lib
+
+makevars.lib:
+	@ echo 'Make variables used in from lib.rules:'
+	@ echo '  TARGET ........... the name of the library, to be used with -l$$TARGET at link time'
+	@ echo '  A ................ the extension/type of the library, possible selections are:'
+	@ echo '                       DOS/Windows libraries:  A = lib'
+	@ echo '                       Unix static libraries:  A = a'
+	@ echo '                       Unix shared libraries:  A = so'
+	@ echo '  OBJS ............. the list of object files to put in the library'	
+	@ echo '  LIB_PATH ......... where to copy the library after creation'	
+	@ echo '  OBJ_PATH ......... where the compiled library resides'	
+	@ echo '  LINK_SHARED ...... command to create a shared Unix library'
+	@ echo '  RPATH ............ optional rpath paramater for the shared Unix library'
+	@ echo '  LIBS ............. other libraries to be linked with the shared Unix library'
+	@ echo '  LIBS_${MAKE_UNAME} .... platform-dependent libraries'
+	@ echo
+
+
+debug:: debug.lib
+
+debug.lib:
+	@ echo 'Make variables used in lib.rules:'
+	@ echo '  TARGET ........... $(TARGET)'
+	@ echo '  A ................ $(A)'
+	@ echo '  OBJS ............. $(OBJS)'
+	@ echo '  LIB_PATH ......... $(LIB_PATH)'
+	@ echo '  OBJ_PATH ......... $(OBJ_PATH)'
+	@ echo '  LD ............... $(LD)'
+	@ echo '  LDFLAGS .......... $(LDFLAGS)'
+	@ echo '  LD_SHARED ........ $(LD_SHARED)'
+	@ echo '  LINK_SHARED ...... $(LINK_SHARED)'
+	@ echo '  RPATH ............ $(RPATH)'
+	@ echo '  LIBS ............. $(LIBS)'
+	@ echo '  LIBS_${MAKE_UNAME} .... $(LIBS_${MAKE_UNAME})'
+	@ echo
+
+
+endif
+#	MAKE_LIB_RULES
+
+

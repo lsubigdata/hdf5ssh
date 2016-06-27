@@ -1,0 +1,70 @@
+ifndef	MULTIPLE_MAKE_RULE_INCLUDED
+MULTIPLE_MAKE_RULE_INCLUDED=1
+
+ifndef	BINPWD
+#ifeq ($(SHELL),C:/msys/1.0/bin/sh.exe)
+ifneq (,$(findstring :/,$(SHELL)))
+#BINPWD:=pwd -W
+BINPWD:=sh -c "pwd -W"
+else
+BINPWD:=/bin/pwd
+endif
+endif
+
+ifdef	 MAKE_ROOT
+MAKE_ROOT:=$(shell cd ${MAKE_ROOT};${BINPWD})
+else
+MAKE_ROOT:=$(shell cd ..;${BINPWD})
+endif
+
+
+include ${MAKE_ROOT}/make/autoselect.cfg
+include ${MAKE_ROOT}/make/make.cfg
+
+TARGETS=$(addprefix make-${CMD},${TARGET_DIRS})
+
+.PHONY: $(TARGETS)
+
+multiple: ${multiple.ctor} $(TARGETS) ${multiple.dtor}
+
+multiple.rules: ${MAKE_ROOT}/make/multiple.rules
+	@echo MAKE_ROOT=${MAKE_ROOT}			> $@
+	@echo include ${MAKE_ROOT}/make/multiple.rules  >> $@
+
+
+#
+# Change into the specified subdirectory (each one from the TARGET_DIRS list)
+# and make the target which is specified by the CMD variable.
+#
+$(TARGETS):
+	$(MAKE) -C $(subst make-${CMD},,$@) $(CMD)
+
+whatif:
+	@$(MAKE) --no-print-directory MAKE='@echo make'
+
+list:
+	@echo $(TARGET_DIRS)
+
+srcdist devdist bindist::
+	$(MAKE) multiple CMD=$@
+
+libclean clean depclean distdeps::
+	$(MAKE) multiple CMD=$@
+
+help::
+	@ echo ' Available Make Targets: '
+	@ echo '  (default)......... compile all files and subdirectories'
+	@ echo '  list ............. list all target directories in the order of their compilation'
+	@ echo '  clean ............ remove object files in all target directories'
+	@ echo '  depclean ......... remove dependency information for all target directories'
+
+
+help.dist::
+	@ echo '  srcdist .......... create source code distributions for all target directories'
+	@ echo '  devdist .......... create developer's distributions for all target directories'
+	@ echo '  bindist .......... create binary distributions for all target directories'
+
+
+
+endif
+# MULTIPLE_MAKE_RULE_INCLUDED

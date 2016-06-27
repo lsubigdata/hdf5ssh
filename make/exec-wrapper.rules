@@ -1,0 +1,27 @@
+ifndef RUNTIME_LIBPATH
+RUNTIME_LIBPATH=$(MAKE_VAR)/lib/$$arch/
+endif
+
+ifndef	MAKE_EXEC_WRAPPER_INCLUDED
+MAKE_EXEC_WRAPPER_INCLUDED=true
+
+exec-wrapper:: ${exec-wrapper.ctor} $(BINDIR)$(TARGET) ${exec-wrapper.dtor}
+
+ifeq ($E,.exe)
+$(BINDIR)$(TARGET):
+
+else
+
+$(BINDIR)$(TARGET):
+	@sed -e's|#RUNTIME_LIBPATH#|$(RUNTIME_LIBPATH)|g' \
+	    -e's|#ARCH_DETECT#|$(ARCH_DETECT)|g'         \
+	    -e's|#EXEC_BINARY#|$(EXEC_BINARY)|g' < $(MAKE_ROOT)/make/start-exec-arch > $@
+	@chmod +x $@
+endif
+
+#$(BINDIR)/arch: $(MAKE_ROOT)/make/arch
+#	$(CP) $<  $@
+
+
+endif #	MAKE_EXEC_WRAPPER_INCLUDED
+

@@ -1,0 +1,113 @@
+<HTML>
+<HEAD>
+<TITLE>Makefile package configuration </TITLE>
+</HEAD>
+<BODY BGCOLOR=#FFFFFF>
+<H1>Makesystem configuration</H1>
+Configuration data for the make configuration system to be provided by the
+application developer (writer of GNUmakefile.rules) or derived from
+such are stored in files <TT>${MAKE_ROOT}/make/*.cfg</TT>,
+of which <TT>${MAKE_ROOT}/make/make.cfg</TT> is the main `<B>configuration
+includer</B>' which should be included in the <a href="GNUmakefile.rules.html">
+GNUmakefile.rules</a> file of the application(s) and includes other
+configuration files as required. System specific data are mostly set from environment
+variables, to have the make configuration system work properly, please set the
+following environment/make variables:
+<P>
+<TABLE BORDER=0 CELLPADDING=0 CELLSPACING=10>
+<TR><TD VALIGN=TOP> <a href="GNUmakefile.rules"><TT><B>MAKE_ROOT</B></TT></a> </TD><TD>
+
+       the absolute path of your (application) top directory to which the
+       make configuration system is to be applied
+</TD></TR>
+
+<TR><TD VALIGN=TOP><TT><B> MAKE_UNAME</B></TT>  </TD><TD>
+     the type of your machine, typically the output of uname, <BR>
+	e.g. using ksh, type <TT>export MAKE_UNAME=$(uname)</TT><BR>
+	     using csh, type <TT>setenv MAKE_UNAME `uname'</TT>
+</TD></TR>
+
+<TR><TD VALIGN=TOP><TT><B> MAKE_CFG</B></TT> </TD><TD>
+        indication as to the compiler configuration you would like to use,
+        predefined by way of shorthands appearing in config file names,
+	e.g. <TT>Debug, Optimize, ...</TT>, usually implies specific 
+        setting of compiler flags, have a look into the config files
+        themselves for more information.
+</TD></TR>
+
+<TR><TD VALIGN=TOP><TT><B> MAKE_HOSTNAME</B></TT> </TD><TD>
+	 the hostname of your computer, for host-specific config files 
+	 (normally needs not to be set)
+</TD></TR></TABLE>
+<P>
+The file <TT><A HREF="autoselect.html">${MAKE_ROOT}/make/autoselect.cfg</A></TT> may
+be included before including <TT>${MAKE_ROOT}/make/make.cfg</TT> 
+to automatically set the <TT>${MAKE_UNAME}</TT> and <TT>${MAKE_HOSTNAME}</TT> variables.
+<TT>${MAKE_CFG}</TT> is set to <TT>Debug</TT>, if not set otherwise.
+<P>
+Configuration (setting of relevant make variables) is done hierarchically:
+<UL>
+<LI> General settings
+<LI> platform-specific
+<LI> compiler configuration-specific
+<LI> host-specific
+<LI> user-specific (also in the same hierarchy: general, platform, 
+     compiler configuration, host-specific)
+</UL>
+At each level, settings from the more general hierarchy level may be overriden in a lower
+level. Some levels are optional, e.g. a compiler configuration file is not
+necessarily required.
+<P>
+The configuration includer then includes the following files (leading `-' means that 
+this file is optional):
+<PRE>
+ include $(MAKE_ROOT)/make/arch-default.cfg
+-include $(MAKE_ROOT)/make/arch-$(MAKE_UNAME).cfg
+ include $(MAKE_ROOT)/make/arch-$(MAKE_UNAME)-$(MAKE_CFG).cfg
+
+# Host specific configurations
+-include $(MAKE_ROOT)/make/hosts/arch-$(MAKE_UNAME)-$(MAKE_CFG)-$(MAKE_HOSTNAME).cfg
+
+# User specific configurations
+-include $(HOME)/make/arch.cfg
+-include $(HOME)/make/arch-$(MAKE_UNAME).cfg
+-include $(HOME)/make/arch-$(MAKE_UNAME)-$(MAKE_CFG).cfg
+-include $(HOME)/make/arch-$(MAKE_UNAME)-$(MAKE_CFG)-$(MAKE_HOSTNAME).cfg
+</PRE>
+A configuration file for the specified <TT>${MAKE_UNAME}</TT> and <TT>${MAKE_CFG}</TT> must exist, otherwise
+make will terminate with an error message.
+In addition to the platform and configuration specific settings
+a host specific configuration may be used from the <TT>${MAKE_ROOT}/make/hosts/</TT> subdirectory,
+e.g. to override variable settings to specify non-standard directory locations
+of locally installed libraries.
+<P>
+If the make configuration system is used by more than one user, any user may 
+provide a local make configuration by creating a <TT>make/</TT>
+subdirectory in his home directory.
+The structure of local files there has to be compatible with that of the
+ <TT>${MAKE_ROOT}</TT> directory.
+These local files are included after the <TT>${MAKE_ROOT}</TT> files and
+therefore override the global settings.
+<P>
+Identical system architectures may be indicated by symbolic links to the directories
+in the <TT>make/</TT> subdirectory; there is no need for
+if-statements, which are possible in GNU make, or for perl/sed script invocation. 
+<P>
+The configuration includer also defines the architecture-specific make variables 
+<B><TT>OBJ_PATH</TT></B> to specife
+where to put compiled object files and
+<B><TT>LIB_PATH</TT></B> to specify where to put library files.
+These directories may different, this way the entire object file tree
+may be removed while retaining the created libraries. The filename 
+pattern (string) that identifies the current architecture is
+stored in the make variable <B><TT>${arch}</TT></B>.
+<P>
+Suffixes (make rules) are predefined in <TT>$(MAKE_ROOT)/make/suffixes.rules</TT>
+<P>
+For more details, please have a look into the file <TT>make.cfg</TT>.
+<HR>
+<P>
+
+</BODY>
+</HTML>
+

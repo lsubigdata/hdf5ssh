@@ -1,0 +1,4 @@
+#!/bin/bash
+
+vi $(../arch)-$(hostname).cfg
+

@@ -1,0 +1,37 @@
+# bin.rules: Rules for creating architecture-independent binaries
+
+ifndef  MAKE_BIN_RULES_INCLUDED
+MAKE_BIN_RULES_INCLUDED=true
+
+#ifndef	BINARCH_SCRIPT
+#BINARCH_SCRIPT=$(BINDIR)/arch
+#endif
+
+bindir: $(BIN_PATH)
+
+# exec-wrapper
+#
+#include $(MAKE_ROOT)/make/exec-wrapper.rules
+#
+#$(BINDIR)/exec-arch: $(MAKE_ROOT)/make/exec-arch
+#	@$(CP) $< $@
+#	@echo $(BINARCH_SCRIPT) copying...
+#
+#realclean::
+#	-$(RM) $(BINDIR)/arch $(BINDIR)/exec-arch
+#
+#archclean::
+#	-$(RM) $(BINDIR)/arch $(BINDIR)/exec-arch
+#
+#arch-exists:
+
+ifndef	BIN_PATH_RULE
+BIN_PATH_RULE=true
+$(BIN_PATH):
+	-mkdir -p $@
+endif
+
+#LD_ARCH=rm -f $(BINDIR)/`basename $@`; ln -fs exec-arch $(BINDIR)/`basename $@`
+
+endif #  MAKE_BIN_RULES_INCLUDED
+

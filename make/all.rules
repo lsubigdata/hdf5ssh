@@ -1,0 +1,98 @@
+#
+# Automatic selection by uname, the optional environment variable
+# MAKE_CC may select a special configuration. `make arch-info' displays
+# a list of available configurations for the current system
+#
+include $(MAKE_ROOT)/make/autoselect.cfg
+
+#
+# The main configuration file which sets all required variables
+#
+include $(MAKE_ROOT)/make/make.cfg
+
+#
+# Use predefined suffix rules (.c --> .o etc.)
+#
+include $(MAKE_ROOT)/make/suffixes.rules
+
+ifndef	all.main
+all.main=compile
+endif
+
+ifdef SRC
+ifndef OBJS
+OBJS = $(SRC:%.cpp=%.o)
+endif
+endif
+
+
+#
+# Primary rule: compilation of dynamic and static libraries.
+#
+all: ${all.ctor} ${all.main} ${all.dtor}
+
+include $(MAKE_ROOT)/make/help.rules
+
+VPATH_TARGET=compile_${TARGET}${INFO}
+
+compile: $(VPATH_TARGET)
+
+include $(MAKE_ROOT)/make/txt2string.rules
+
+include $(MAKE_ROOT)/make/vpath.rules
+
+vpath_compile_${TARGET}${INFO}: lib ${compile.done}
+
+include $(MAKE_ROOT)/make/lib.rules
+include $(MAKE_ROOT)/make/lib-static.rules
+include $(MAKE_ROOT)/make/obj.rules
+include $(MAKE_ROOT)/make/vmore.rules
+
+#
+# Autoclass-generation for Windows DLL's
+#
+include $(MAKE_ROOT)/make/cxx.rules
+
+#
+# Support for distribution generation
+#
+TAREXCLUDES+='--exclude=*.tga'
+SRCEXTRAS+=${MAKEFILE} GNUmakefile.rules Main.rules make/
+DEVEXTRAS+=GNUmakefile.rules make/
+#include $(MAKE_ROOT)/make/dist.rules
+
+#############################################################
+#
+# `bin' target for creating binaries:
+#
+
+include $(MAKE_ROOT)/make/bin-static.rules
+
+#
+# Binary generation rules
+#
+include $(MAKE_ROOT)/make/bin-shared.rules
+
+
+#############################################################
+#
+# Interfacing external libraries and conditional compilation
+#
+include $(MAKE_ROOT)/make/external.rules
+
+#
+# Microsoft rules
+#
+include $(MAKE_ROOT)/make/ms.rules
+
+#############################################################
+#
+# Provide a `info' target for current configurations settings
+#
+include $(MAKE_ROOT)/make/info.rules
+
+-include $(MAKEDEPENDENCIES)
+
+depclean::
+	$(RM) $(OBJ_PATH)/$(MAKEDEPENDENCIES)
+

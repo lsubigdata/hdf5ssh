@@ -1,0 +1,28 @@
+#!/bin/sh
+
+this=`basename $0`
+thisdir=`dirname $0`
+
+if [ "$thisdir" = "" ]
+then
+	thisdir=./
+fi
+
+if [ ! -x $thisdir/arch ]
+then
+	echo "Error: no 'arch' script found in $thisdir!"
+	exit 1;
+fi
+
+arch=`$thisdir/arch`
+
+binary=$thisdir/$arch/$this
+
+if [ ! -x $binary ]
+then
+	echo "Error: No binary $this for $arch found!"
+	exit 1;
+fi
+
+exec $binary $*
+

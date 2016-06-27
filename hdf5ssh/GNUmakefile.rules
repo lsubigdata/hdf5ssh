@@ -1,0 +1,4 @@
+MAKE_LEVEL:=$(MAKE_LEVEL)../
+
+include $(VPATH)$(MAKE_LEVEL)GNUmakefile.rules
+

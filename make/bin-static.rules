@@ -1,0 +1,43 @@
+
+static_binary: binstatic
+
+VPATH_TARGET=binstatic
+
+include $(MAKE_ROOT)/make/bin.rules
+include $(MAKE_ROOT)/make/vpath.rules
+
+
+ifndef	EXEC_BINARY
+EXEC_BINARY=$${arch}/$(TARGET)
+endif
+
+vpath_binstatic: bindir $(BIN_PATH)/$(TARGET).exe
+
+$(BIN_PATH)/$(TARGET).exe: $(OBJS)
+	$(LD) ${LDFLAGS_$(MAKE_CFG)} -L$(LIB_PATH_STATIC) -o $@ $(OBJS) $(LIBS) -lm
+
+#	$(LD_ARCH)
+
+realclean::
+	-$(RM) $(BIN_PATH)/$(TARGET).exe
+	-$(RM) $(BINDIR)/$(TARGET)
+
+binclean::
+	-$(RM) $(BIN_PATH)/$(TARGET).exe
+
+run:	${run.ctor} execute ${run.dtor}
+
+execute: binstatic
+	$(PREEXEC) $(BINDIR)/$(TARGET) $(ARGS)
+
+runexe:	binstatic
+	$(PREEXEC) $(BIN_PATH)/$(TARGET).exe $(ARGS)
+
+
+
+GDB=gdb
+
+debug-static:	binstatic
+	$(GDB) $(BIN_PATH)/$(TARGET).exe $(ARGS)
+
+

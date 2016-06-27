@@ -1,0 +1,81 @@
+<HTML>
+<HEAD>
+<TITLE>General properties of Rule files</TITLE>
+</HEAD>
+<BODY BGCOLOR=white>
+
+<H1>General properties of Rule files</H1>
+
+<H2>Online Help</H2>
+
+Each rule file provides a couple of rules.
+The <B>help</B> target gives a list and description of all
+targets which are useable by including a rule file.
+Internal targets are not shown.
+<P>
+The <B>help</B> target is a multiple target, i.e. it may have
+more than one rule. Any rule file adds more information to this
+help target, printing the name of the rule file first.
+If you wants to see the help text for a specific rule file only,
+e.g. for `bin-shared.rules', use the single target
+<B>help.bin-shared</B> (or generally: help. + &lt;<EM>rule file name</EM>&gt;).
+<P>
+Similar to the <B>help</B> target, the <B>makevars</B> and <B>debug</B>
+targets are available, providing a list of used make variables and
+their values, respectively.
+<P>
+
+<TABLE>
+<TR><TD>make <B>help</B></TD>
+	<TD>List of all available make targets</TD></TR>
+
+<TR><TD>make <B>help.&lt;<EM>rule file name</EM>&gt;</B></TD>
+	<TD>List of available make targets from &lt;<EM>rule file name</EM>&gt;.rules</TD></TR>
+
+<TR><TD>make <B>makevars</B></TD>
+	<TD>List of all useful make variables</TD></TR>
+
+<TR><TD>make <B>makevars.&lt;<EM>rule file name</EM>&gt;</B></TD>
+	<TD>List of useful make variables from &lt;<EM>rule file name</EM>&gt;.rules</TD></TR>
+
+<TR><TD>make <B>debug</B></TD>
+	<TD>Values of all used make variables</TD></TR>
+
+<TR><TD>make <B>debug.&lt;<EM>rule file name</EM>&gt;</B></TD>
+	<TD>Values of make variables used for &lt;<EM>rule file name</EM>&gt;.rules</TD></TR>
+
+</TABLE>
+
+<A NAME=cdtor>
+<H2>Constructor/Destructor</H2>
+</A>
+
+For each target listed by the <B>help</B> commands two addtional targets 
+`constructor' and `destructor' are provided by way of make variables which
+are empty by default but can be specified expicitely, e.g. for a target
+<em><b>example</b></em> they must be quoted as
+<P>
+<B>${example.ctor}</B> (constructor)
+and
+<B>${example.dtor}</B> (destructor)
+<P>
+If defined, the constructor is applied before any subtargets, and the destructor
+is made afterwards, otherwise (default) no such target is applied.
+<P>
+<B>Note:</B> The constructor/destructor variables <EM>must</EM> be defined before
+the rule files is included.
+<P>
+<B>Note:</B> The destructor target is a dependency of the target, i.e. it is
+made <EM>before</EM> the target rules are executed. The destructor rule is only
+useful for empty targets, which depend on others, i.e. in the following way:
+<PRE>
+all: ${all.ctor} all.run ${all.dtor}
+
+all.run:
+	echo Doing something...
+</PRE>
+This way <B>${all.ctor}</B> and <B>${all.dtor}</B> may specify targets, whose rules are made
+before/after the <EM>all.run</EM> target.
+
+</BODY>
+</HTML>

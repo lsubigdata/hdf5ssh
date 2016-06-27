@@ -1,0 +1,41 @@
+<HTML>
+<HEAD>
+<TITLE>arch</TITLE>
+</HEAD>
+<BODY BGCOLOR=white>
+
+<H1>The arch script</H1>
+
+The arch script, which is provided in the make/ subdirectory,
+generates an `architecture' string, which can be used at runtime
+to detect the current hardware architecture and configuration.
+<P>
+Currently, it makes use of the uname utility, but uses the
+environment variable MAKE_UNAME, if available. The 
+configuration is used from the MAKE_CFG variable and defaults
+to Debug.
+<P>
+The architecture string is of the form
+<PRE>
+	arch-${MAKE_UNAME}-${MAKE_CFG}
+</PRE>
+If the environment variable <TT>$arch</TT> exists, it will be used instead
+of any <TT>MAKE_UNAME/MAKE_CFG</TT> settings.
+<P>
+Basically, this could be done within a program using these both environment
+variables, too. However, there might be some special cases in evaluating
+these variables, and these case should/must be handled in the same way as
+it is done in <A HREF="autoselect.html">autoselect.cfg</A> (or in any other
+user selection scheme). Therefore it is better to do this in a central place.
+<P>
+The main use of the arch scripts is for shell scripts to detect the correct
+architecture-specific binary. Within binaries, one could simply
+add
+<PRE>
+CFLAGS += -Darch=\"$(arch)\"
+</PRE>
+to the C compiler flags to get the current compilation architecture into
+a C define.
+
+</BODY>
+</HTML>

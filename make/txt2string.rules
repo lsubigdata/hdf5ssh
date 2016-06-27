@@ -1,0 +1,5 @@
+txt2string: ${TXT2STRING}
+
+${TXT2STRING}: ${MAKE_ROOT}/make/txt2string.cpp
+	${CXX} $< -o $@
+

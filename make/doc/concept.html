@@ -1,0 +1,101 @@
+<HTML>
+<HEAD>
+<TITLE>Concepts</TITLE>
+</HEAD>
+<BODY BGCOLOR=white>
+
+<H1>Concepts of the makefile configuration system</H1>
+
+<H3>Common basic structure of all applications using this makefile configuration system</H3>
+
+<PRE>
+Application directory ( <A HREF="GNUmakefile.rules.html#make_root">${MAKE_ROOT}</A> )
+   |
+   |------ make/                makefile configuration system files
+   |
+   |----- <A HREF="GNUmakefile.rules.html#novpath">GNUmakefile.rules</A>     an application specific rules file
+   |
+   |
+   |------ util/                target subdirectory containing data from which 
+   |        |                   this target (within the application) is to be
+   |        |                   constructed, e.g. source code for a binary
+   |        |
+   |        \----- <A HREF="GNUmakefile.html">GNUmakefile</A>  Makefile specififying how to make this target
+   |
+   |
+   |------ tools/               subdirectory containing construction data for 
+   |        |                   another target of this application
+   |        |
+   |        \----- <A HREF="GNUmakefile.html">GNUmakefile</A>
+   |
+   |
+  ...	(more target directories)
+
+</PRE>
+
+<H3>Structure of a typical applications using the VPATH rule of this makefile configuration system</H3>
+<PRE>
+Application directory ( <A HREF="GNUmakefile.rules.html#make_root">${MAKE_ROOT}</A> )
+   |
+   |------ make/                makefile configuration system files
+   |
+   |-----  <A HREF="GNUmakefile.rules.html#vpath">GNUmakefile.rules</A>     an application specific rules file
+   |
+   |
+   |--- lib/                        directory for libraries
+   |     |                    
+   |     |--- arch-IRIX-Debug/      libraries for IRIX platform, Debug configuration
+   |     |           |
+   |     |           |-- libutil.so  some libraries...
+   |     |           |
+   |     |           \-- libtools.so
+   |     |
+   |     |--- arch-T3E-Optimize/     libraries for CRAY T3E platform, Optimize configuration
+   |     |           |
+   |     |           |-- libutil.a
+   |     |           |
+   |     |           \-- libtools.a
+   |     |
+   |    ...
+   |
+   |
+   |--- obj/                          directory for temporary compilation files
+   |     |                    
+   |     |--- arch-IRIX-Debug/        files for IRIX platform, Debug configuration
+   |     |           |
+   |     |           |-- util/        temporary files belonging to target `util'
+   |     |           |     |--- *.o   object files for target `util'
+   |     |           |     \--- *.d   object files dependency information
+   |     |           |                (sometimes a Makefile.depend file)
+   |     |           |
+   |     |           \-- tools/       temporary files belonging to target `tools'
+   |     |                 \--- *.o   
+   |     |
+   |     |--- arch-T3E-Optimize/      files for CRAY T3E platform, Optimize configuration
+   |     |           |
+   |     |           |-- util/
+   |     |           |     \--- *.o   T3E object files for target `util'
+   |     |           |
+   |     |           \-- tools/
+   |     |                 \--- *.o   
+   |     |
+   |    ...
+   |
+   | 
+   |
+   |------ util/                source code directory for `util' target 
+   |        |
+   |        \----- <A HREF="GNUmakefile.html">GNUmakefile</A>  Makefile specififying how to make this target
+   |
+   |
+   |------ tools/               another target's source code directory 
+   |        |
+   |        \----- <A HREF="GNUmakefile.html">GNUmakefile</A>
+   |
+   |
+  ...	(more target directories)
+
+</PRE>
+
+</BODY>
+</HTML>
